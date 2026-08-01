@@ -37,21 +37,25 @@
   #app{max-width:540px; margin:0 auto; padding:14px 16px 110px;
     padding-top:max(14px, env(safe-area-inset-top));
     padding-left:max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right));}
-  h1{font-size:22px; margin:0;}
-  h2{font-size:15px; margin:22px 0 8px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:700;}
+  h1{font-size:22px; margin:0; letter-spacing:-.02em;}
+  h2{font-size:12px; margin:26px 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-weight:600;}
+  .ic{width:18px; height:18px; flex:none;}
+  .iconbtn .ic{width:19px; height:19px;}
+  .banner .ic{vertical-align:-4px; margin-right:2px;}
+  .hint{font-size:12.5px; color:var(--muted); margin:-2px 0 10px; line-height:1.5;}
   .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0 14px;}
   .topbar .side{display:flex; gap:8px; align-items:center;}
   .iconbtn{border:1px solid var(--line); background:var(--card); color:var(--ink);
     border-radius:12px; padding:9px 12px; font-size:16px; cursor:pointer; line-height:1;
     min-height:44px; display:inline-flex; align-items:center; justify-content:center;}
-  .btn{display:block; width:100%; border:none; border-radius:13px; padding:15px;
-    font-size:16px; font-weight:700; cursor:pointer; text-align:center;}
-  .btn-primary{background:var(--green); color:#fff;}
+  .btn{display:flex; width:100%; align-items:center; justify-content:center; gap:7px; border:none; border-radius:13px; padding:15px;
+    font-size:16px; font-weight:600; cursor:pointer; text-align:center; font-family:inherit;}
+  .btn-primary{background:var(--ink); color:var(--bg);}
   .btn-primary:disabled{opacity:.45;}
   .btn-ghost{background:var(--card); color:var(--ink); border:1px solid var(--line);}
-  .btn-sm{display:inline-block; width:auto; padding:9px 13px; font-size:13.5px; border-radius:10px;}
+  .btn-sm{display:inline-flex; width:auto; padding:9px 13px; font-size:13.5px; border-radius:10px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-    padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.04);}
+    padding:14px; margin-bottom:12px;}
   .muted{color:var(--muted);}
   .small{font-size:12.5px;}
   .row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
@@ -65,7 +69,7 @@
 
   /* segmented control */
   .seg{display:flex; background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:3px; gap:3px;}
-  .seg button{flex:1; border:none; background:transparent; color:var(--muted); font-weight:700;
+  .seg button{flex:1; border:none; background:transparent; color:var(--muted); font-weight:600;
     font-size:13.5px; padding:9px 4px; min-height:44px; display:flex; align-items:center; justify-content:center;
     border-radius:8px; cursor:pointer; font-family:inherit;}
   .seg button.on-C{background:var(--c); color:#fff;}
@@ -73,13 +77,13 @@
   .seg button.on-SH{background:var(--sh); color:#fff;}
 
   .chip{display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:8px 12px; min-height:44px;
-    font-size:12px; font-weight:700; border:1px solid var(--line); background:var(--bg); color:var(--muted); cursor:pointer;}
+    font-size:12px; font-weight:600; border:1px solid var(--line); background:var(--bg); color:var(--muted); cursor:pointer;}
   .chip.on{background:var(--amber-bg); color:var(--amber); border-color:transparent;}
   .qtybadge{display:inline-block; background:var(--bg); border:1px solid var(--line); color:var(--muted);
     font-size:12px; font-weight:700; border-radius:7px; padding:2px 7px; vertical-align:1px;}
   .dot{display:inline-block; width:9px; height:9px; border-radius:50%;}
   .dot-C{background:var(--c);} .dot-S{background:var(--s);} .dot-SH{background:var(--sh);}
-  .money{font-variant-numeric:tabular-nums; font-weight:700;}
+  .money{font-variant-numeric:tabular-nums; font-weight:600;}
 
   .banner{border-radius:12px; padding:11px 13px; font-size:13.5px; margin-bottom:12px; line-height:1.45;}
   .banner-ok{background:var(--green-bg); color:var(--green);}
@@ -115,18 +119,20 @@
 
   .outrow{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line);}
   .outrow:last-child{border-bottom:none;}
-  .copybtn{border:none; border-radius:10px; padding:9px 13px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;
-    font-weight:700; font-size:13px; cursor:pointer; color:#fff; white-space:nowrap; font-family:inherit;}
-  .copy-S{background:var(--s);} .copy-SH{background:var(--sh);} .copy-full{background:var(--ink); color:var(--bg);}
+  .copybtn{border:none; border-radius:999px; padding:9px 15px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; font-family:inherit;}
+  .copy-S{background:color-mix(in srgb, var(--s) 14%, transparent); color:var(--s);}
+  .copy-SH{background:color-mix(in srgb, var(--sh) 14%, transparent); color:var(--sh);}
+  .copy-full{background:var(--ink); color:var(--bg);}
 
   .sumline{display:flex; justify-content:space-between; font-size:14px; padding:4px 0;}
   details{margin-top:6px;}
-  details summary{cursor:pointer; font-weight:700; font-size:13.5px; color:var(--muted); padding:6px 0;}
+  details summary{cursor:pointer; font-weight:600; font-size:13.5px; color:var(--muted); padding:6px 0;}
   .tablewrap{overflow-x:auto; margin-top:6px;}
   table.bd{width:100%; border-collapse:collapse; font-size:13px;}
   table.bd th, table.bd td{padding:5px 4px; text-align:right; border-bottom:1px solid var(--line);}
   table.bd th:first-child, table.bd td:first-child{text-align:left; color:var(--muted); font-weight:600;}
-  table.bd tr:last-child td{border-bottom:none; font-weight:800;}
+  table.bd tr:last-child td{border-bottom:none; font-weight:650;}
 
   .thumbs{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:12px 0;}
   .thumb{position:relative; border-radius:11px; overflow:hidden; border:1px solid var(--line);}
@@ -135,18 +141,19 @@
     border:none; background:none; color:#fff; font-size:14px; cursor:pointer; line-height:1;
     display:flex; align-items:center; justify-content:center; z-index:0;}
   .thumb .rm::before{content:''; position:absolute; inset:9px; border-radius:50%; background:rgba(0,0,0,.62); z-index:-1;}
-  .filelabel{display:block; border:1.5px dashed var(--line); border-radius:13px; padding:26px 14px;
-    text-align:center; color:var(--muted); font-weight:600; cursor:pointer; background:var(--card);}
+  .filelabel{display:flex; flex-direction:column; align-items:center; gap:7px; border:1px dashed var(--line); border-radius:14px; padding:26px 14px;
+    text-align:center; color:var(--muted); font-weight:600; font-size:14.5px; cursor:pointer; background:var(--card);}
   .filelabel input{display:none;}
+  .filelabel .ic{width:24px; height:24px;}
 
   .spin{display:inline-block; width:17px; height:17px; border:2.5px solid var(--line);
-    border-top-color:var(--green); border-radius:50%; animation:sp .8s linear infinite; vertical-align:-3px; margin-right:8px;}
+    border-top-color:var(--ink); border-radius:50%; animation:sp .8s linear infinite; vertical-align:-3px; margin-right:8px;}
   @keyframes sp{to{transform:rotate(360deg);}}
 
   .triprow{display:flex; align-items:center; gap:11px; padding:13px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
   .triprow:last-child{border-bottom:none;}
   .triprow .tinfo{flex:1; min-width:0;}
-  .triprow .tname{font-weight:700; font-size:15px;}
+  .triprow .tname{font-weight:600; font-size:15px;}
   .triprow .tsub{font-size:12.5px; color:var(--muted); margin-top:2px;}
   .tamounts{text-align:right; font-size:12.5px; line-height:1.5; white-space:nowrap;}
 
@@ -154,11 +161,11 @@
     background:color-mix(in srgb, var(--card) 88%, transparent); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
     padding:10px 16px calc(10px + env(safe-area-inset-bottom)); z-index:30;}
   .stickybar .inner{max-width:540px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:8px;}
-  .stickybar .tots{display:flex; gap:11px; font-size:13px; font-weight:700; flex-wrap:wrap;}
+  .stickybar .tots{display:flex; gap:11px; font-size:13px; font-weight:600; flex-wrap:wrap;}
   .stickybar .tots span{display:inline-flex; align-items:center; gap:5px;}
 
   #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:96px; background:var(--ink); color:var(--bg);
-    padding:10px 18px; border-radius:999px; font-size:14px; font-weight:700; opacity:0; pointer-events:none;
+    padding:10px 18px; border-radius:999px; font-size:14px; font-weight:600; opacity:0; pointer-events:none;
     transition:opacity .18s; z-index:60; white-space:nowrap;}
   #toast.show{opacity:1;}
   .empty{padding:34px 10px; text-align:center; color:var(--muted); font-size:14.5px; line-height:1.6;}
@@ -192,6 +199,19 @@ const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 const money = cents => (cents < 0 ? '-' : '') + '$' + (Math.abs(cents)/100).toFixed(2);
 const moneyN = n => money(Math.round(n*100));
 
+const _sv = p => '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+const IC = {
+  gear:  _sv('<path d="M4 7h9"/><path d="M17 7h3"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/>'),
+  plus:  _sv('<path d="M12 5v14"/><path d="M5 12h14"/>'),
+  back:  _sv('<path d="M14.5 5.5 8 12l6.5 6.5"/>'),
+  trash: _sv('<path d="M5 7h14"/><path d="M10 7V5.4A1.4 1.4 0 0 1 11.4 4h1.2A1.4 1.4 0 0 1 14 5.4V7"/><path d="m8.4 7 .6 12.2h6L15.6 7"/>'),
+  copy:  _sv('<rect x="8.6" y="8.6" width="10.4" height="10.4" rx="2.4"/><path d="M15.4 5.4V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6.4a2 2 0 0 0 2 2h.4"/>'),
+  image: _sv('<rect x="4" y="5" width="16" height="14" rx="2.6"/><circle cx="9.2" cy="10" r="1.7"/><path d="m5.5 16.5 4-4 3 3 2.8-2.8 3.2 3.2"/>'),
+  eye:   _sv('<path d="M3.5 12S6.8 6.2 12 6.2 20.5 12 20.5 12 17.2 17.8 12 17.8 3.5 12 3.5 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
+  x:     _sv('<path d="m6.5 6.5 11 11"/><path d="m17.5 6.5-11 11"/>'),
+  check: _sv('<path d="m5.5 12.5 4.2 4.2 8.8-9.2"/>')
+};
+
 function toast(msg){
   const t = $('toast');
   t.textContent = msg;
@@ -203,13 +223,13 @@ function toast(msg){
 async function copyText(str, okMsg){
   try{
     await navigator.clipboard.writeText(str);
-    toast(okMsg || 'Copied ✓');
+    toast(okMsg || 'Copied');
   }catch(e){
     // fallback for non-secure contexts
     const ta = document.createElement('textarea');
     ta.value = str; ta.style.position='fixed'; ta.style.opacity='0';
     document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); toast(okMsg || 'Copied ✓'); }
+    try{ document.execCommand('copy'); toast(okMsg || 'Copied'); }
     catch(e2){ toast('Copy failed'); }
     ta.remove();
   }
@@ -234,7 +254,7 @@ function persist(){
   try{
     localStorage.setItem('gt_settings', JSON.stringify(settings));
     localStorage.setItem('gt_trips', JSON.stringify(trips));
-  }catch(e){ toast('Could not save (storage full?)'); }
+  }catch(e){ toast('Could not save'); }
 }
 const tripById = id => trips.find(t => t.id === id);
 
@@ -536,46 +556,46 @@ function renderHome(){
         <span class="dot dot-SH"></span> ${money(r.totals.SH)}<br>
         <span class="dot dot-S"></span> ${money(r.totals.S)}
       </div>
-      <button class="iconbtn" onclick="event.stopPropagation();A.deleteTrip('${t.id}')" aria-label="Delete trip">🗑</button>
+      <button class="iconbtn" onclick="event.stopPropagation();A.deleteTrip('${t.id}')" aria-label="Delete trip">${IC.trash}</button>
     </div>`;
   }).join('');
 
   $('app').innerHTML = `
     <div class="topbar">
       <h1>Grocery $ Tracker</h1>
-      <div class="side"><button class="iconbtn" onclick="A.goSettings()" aria-label="Settings">⚙️</button></div>
+      <div class="side"><button class="iconbtn" onclick="A.goSettings()" aria-label="Settings">${IC.gear}</button></div>
     </div>
-    ${settings.apiKey ? '' : `<div class="banner banner-info">First run: add your Anthropic API key in <b>Settings ⚙️</b> so the app can read screenshots.</div>`}
-    <button class="btn btn-primary" onclick="A.goNew()">＋ &nbsp;New Trip</button>
-    <h2>Past trips</h2>
+    ${settings.apiKey ? '' : `<div class="banner banner-info">Add your Anthropic API key in <b>Settings</b> before your first trip.</div>`}
+    <button class="btn btn-primary" onclick="A.goNew()">${IC.plus}New Trip</button>
+    <h2>Past Trips</h2>
     <div class="card" style="padding:4px 14px;">
-      ${trips.length ? list : `<div class="empty">No trips yet.<br>Tap <b>New Trip</b> and upload your order screenshots.</div>`}
+      ${trips.length ? list : `<div class="empty">No trips yet.<br>Start with <b>New Trip</b> and your order screenshots.</div>`}
     </div>`;
 }
 
 function renderSettings(){
   $('app').innerHTML = `
     <div class="topbar">
-      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">←</button><h1>Settings</h1></div>
+      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">${IC.back}</button><h1>Settings</h1></div>
     </div>
     <div class="card">
       <label class="flabel" style="margin-top:0;">Anthropic API key</label>
       <div class="row">
         <input class="in grow" id="apiKey" type="password" placeholder="sk-ant-..." value="${esc(settings.apiKey)}" autocomplete="off">
-        <button class="iconbtn" onclick="A.toggleKey()" aria-label="Show key">👁</button>
+        <button class="iconbtn" onclick="A.toggleKey()" aria-label="Show key">${IC.eye}</button>
       </div>
       <label class="flabel">Model</label>
       <select class="in" id="model">
-        <option value="claude-opus-5" ${settings.model==='claude-opus-5'?'selected':''}>Claude Opus 5 — most accurate (~2–5¢/trip)</option>
-        <option value="claude-haiku-4-5" ${settings.model==='claude-haiku-4-5'?'selected':''}>Claude Haiku 4.5 — cheaper (~1¢/trip)</option>
+        <option value="claude-opus-5" ${settings.model==='claude-opus-5'?'selected':''}>Claude Opus 5 · recommended</option>
+        <option value="claude-haiku-4-5" ${settings.model==='claude-haiku-4-5'?'selected':''}>Claude Haiku 4.5 · lower cost</option>
       </select>
       <div style="margin-top:14px;" class="row">
-        <button class="btn btn-ghost btn-sm" onclick="A.testKey()">Test key</button>
+        <button class="btn btn-ghost btn-sm" onclick="A.testKey()">Test Key</button>
         <span id="testResult" class="small muted"></span>
       </div>
     </div>
     <div class="card small muted" style="line-height:1.6;">
-      Your key is stored only in this browser on this device (localStorage) and is sent only to <b>api.anthropic.com</b>. Screenshots go directly from your phone to the Anthropic API for extraction — nowhere else. All splitting math runs on-device.
+      Your key is stored only on this device and sent only to <b>api.anthropic.com</b>. Screenshots go directly from your phone to the Anthropic API. All splitting math runs on-device.
     </div>
     <button class="btn btn-primary" onclick="A.saveSettings()">Save</button>`;
 }
@@ -583,19 +603,19 @@ function renderSettings(){
 function renderNew(){
   const thumbs = pendingImages.map((u, i) => `
     <div class="thumb"><img src="${u}" alt="screenshot ${i+1}">
-      <button class="rm" onclick="A.removeImage(${i})" aria-label="Remove">✕</button></div>`).join('');
+      <button class="rm" onclick="A.removeImage(${i})" aria-label="Remove">${IC.x.replace('class="ic"','class="ic" style="width:13px;height:13px;"')}</button></div>`).join('');
   $('app').innerHTML = `
     <div class="topbar">
-      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">←</button><h1>New Trip</h1></div>
+      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">${IC.back}</button><h1>New Trip</h1></div>
     </div>
     <label class="filelabel">
       <input type="file" accept="image/*" multiple onchange="A.addImages(this.files)">
-      📸 &nbsp;Add screenshots<br><span class="small">cart / receipt + the fees &amp; total summary</span>
+      ${IC.image}<span style="color:var(--ink);">Add Screenshots</span><span class="small" style="font-weight:400;">Cart or receipt, plus the fees and total summary</span>
     </label>
     <div class="thumbs">${thumbs}</div>
     <div id="parseStatus"></div>
     <button class="btn btn-primary" id="parseBtn" onclick="A.parse()" ${pendingImages.length && settings.apiKey ? '' : 'disabled'}>
-      Read screenshots →</button>
+      Analyze Screenshots</button>
     ${settings.apiKey ? '' : `<div class="banner banner-warn" style="margin-top:12px;">Add your API key in Settings first.</div>`}`;
 }
 
@@ -617,18 +637,18 @@ function renderTrip(id){
   const diff = r.computedTotal - r.receiptTotal;
   if(r.receiptTotal > 0){
     if(Math.abs(diff) <= 1){
-      banner = `<div class="banner banner-ok">✓ Everything adds up to the receipt total <b>${money(r.receiptTotal)}</b></div>`;
+      banner = `<div class="banner banner-ok">${IC.check}Reconciles to the receipt total <b>${money(r.receiptTotal)}</b></div>`;
     }else{
-      banner = `<div class="banner banner-warn">⚠️ Items + fees + tax − discounts = <b>${money(r.computedTotal)}</b> but the receipt total is <b>${money(r.receiptTotal)}</b> (off by ${money(diff)}). Check prices, fees, or discounts below.</div>`;
+      banner = `<div class="banner banner-warn">Computed <b>${money(r.computedTotal)}</b> against a receipt total of <b>${money(r.receiptTotal)}</b>, a difference of ${money(diff)}. Check prices, fees, or discounts.</div>`;
     }
   }
   if(t.subtotal > 0 && Math.abs(r.lineSum - Math.round(t.subtotal*100)) > 1){
-    banner += `<div class="banner banner-warn">⚠️ Item prices sum to ${money(r.lineSum)} but the receipt subtotal is ${moneyN(t.subtotal)} — an item may be missing or misread.</div>`;
+    banner += `<div class="banner banner-warn">Item prices sum to ${money(r.lineSum)}; the receipt subtotal is ${moneyN(t.subtotal)}. An item may be missing or misread.</div>`;
   }
   if(t.notes){
-    banner += `<div class="banner banner-info">📝 ${esc(t.notes)} <button class="linklike" onclick="A.clearNotes()">dismiss</button></div>`;
+    banner += `<div class="banner banner-info">${esc(t.notes)} <button class="linklike" onclick="A.clearNotes()">Dismiss</button></div>`;
   }
-  for(const w of r.warnings) banner += `<div class="banner banner-warn">⚠️ ${esc(w)}</div>`;
+  for(const w of r.warnings) banner += `<div class="banner banner-warn">${esc(w)}</div>`;
 
   // --- items ---
   const itemsHtml = t.items.map(it => {
@@ -653,7 +673,7 @@ function renderTrip(id){
           <div class="stepper">
             <button onclick="A.stepSplit('${it.id}','${c.k}',-1)">−</button>
             <span class="cnt">${num(it.split[c.k])}</span>
-            <button onclick="A.stepSplit('${it.id}','${c.k}',1)">＋</button>
+            <button onclick="A.stepSplit('${it.id}','${c.k}',1)">+</button>
           </div></div>`).join('')}
         <div class="small muted">${splitNote(it)}</div>
         <button class="linklike" onclick="A.removeSplit('${it.id}')">Remove split</button>
@@ -666,9 +686,9 @@ function renderTrip(id){
       ${catSeg(it.assign, `A.assign('${it.id}','%K')`)}
       <div class="itemtools">
         ${it.qty > 1 && !it.split ? `<button class="linklike" onclick="A.startSplit('${it.id}')">Split quantity</button>` : ''}
-        ${showTax ? `<button class="chip ${it.taxable ? 'on' : ''}" onclick="A.toggleTax('${it.id}')" title="${esc(it.taxReason)}">TAX ${it.taxable ? '✓' : '—'}</button>` : ''}
+        ${showTax ? `<button class="chip ${it.taxable ? 'on' : ''}" onclick="A.toggleTax('${it.id}')" title="${esc(it.taxReason)}">Taxable</button>` : ''}
         <div class="grow"></div>
-        <button class="linklike" onclick="A.startEditItem('${it.id}')">✎ Edit</button>
+        <button class="linklike" onclick="A.startEditItem('${it.id}')">Edit</button>
       </div>
       ${splitPanel}
     </div>`;
@@ -690,7 +710,7 @@ function renderTrip(id){
       </div>`;
     }else if(p.mode === 'items'){
       panel = `<div class="splitpanel">
-        <div class="small muted" style="margin-bottom:4px;">Discount is spread across the checked items (by price) and follows whoever each item is assigned to.</div>
+        <div class="small muted" style="margin-bottom:4px;">Spread across the checked items by price, following each item's assignment.</div>
         ${t.items.map(it => `<label class="checkitem">
           <input type="checkbox" ${(p.itemIds||[]).includes(it.id) ? 'checked' : ''} onchange="A.promoItemToggle('${p.id}','${it.id}',this.checked)">
           <span class="grow">${esc(it.name)}</span><span class="money small">${moneyN(it.lineTotal)}</span>
@@ -705,15 +725,15 @@ function renderTrip(id){
            <button class="btn btn-ghost btn-sm" onclick="A.doneEditPromo()">Done</button>
          </div>`
       : `<div class="row">
-           <div class="itemname grow">🏷 ${esc(p.label)}</div>
+           <div class="itemname grow">${esc(p.label)}</div>
            <div class="money" style="color:var(--green);">−${moneyN(p.amount)}</div>
-           <button class="linklike" onclick="A.startEditPromo('${p.id}')">✎</button>
+           <button class="linklike" onclick="A.startEditPromo('${p.id}')">Edit</button>
          </div>`;
     return `<div class="card">
       ${head}
       <div class="modes">
         ${modeBtn('C','Collin','C')}${modeBtn('S','Steph','S')}${modeBtn('SH','Shared','SH')}
-        ${modeBtn('split','Split $…','X')}${modeBtn('items','By items…','X')}
+        ${modeBtn('split','Split amount','X')}${modeBtn('items','By item','X')}
       </div>
       ${panel}
     </div>`;
@@ -731,28 +751,29 @@ function renderTrip(id){
 
   $('app').innerHTML = `
     <div class="topbar">
-      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">←</button>
+      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">${IC.back}</button>
         <div><h1 style="font-size:19px;">${esc(t.store)}</h1><div class="small muted">${esc(t.dateStr)} · ${t.items.length} items</div></div>
       </div>
-      <button class="iconbtn" onclick="A.deleteTrip('${t.id}')" aria-label="Delete trip">🗑</button>
+      <button class="iconbtn" onclick="A.deleteTrip('${t.id}')" aria-label="Delete trip">${IC.trash}</button>
     </div>
     ${banner}
 
     <div class="card desc-wrap">
-      <label class="flabel" style="margin-top:0;">Sheet description (max 23 chars) — pasted next to both values</label>
+      <label class="flabel" style="margin-top:0;">Sheet description · pasted beside both values</label>
       <input class="in" id="descInput" maxlength="23" value="${esc(t.description)}" oninput="A.descChanged(this.value)">
       <div class="counter ${descLen>23?'over':''}" id="descCount">${descLen}/23</div>
     </div>
 
-    <h2>Items — tap who it belongs to</h2>
-    ${itemsHtml || '<div class="card empty">No items — add one below.</div>'}
-    <button class="btn btn-ghost" onclick="A.addItem()">＋ Add item</button>
+    <h2>Items</h2>
+    <div class="hint">Tap a name to assign each item. Everything starts with Collin.</div>
+    ${itemsHtml || '<div class="card empty">No items yet. Add one below.</div>'}
+    <button class="btn btn-ghost" onclick="A.addItem()">Add Item</button>
 
     <h2>Discounts</h2>
     ${promosHtml || '<div class="card small muted">No discounts on this order.</div>'}
-    <button class="btn btn-ghost" onclick="A.addPromo()">＋ Add discount</button>
+    <button class="btn btn-ghost" onclick="A.addPromo()">Add Discount</button>
 
-    <h2>Fees, tip &amp; tax</h2>
+    <h2>Fees &amp; Tax</h2>
     <div class="card">
       ${feeInput('Service fee', 'service', t.fees.service)}
       ${feeInput('Delivery', 'delivery', t.fees.delivery)}
@@ -760,34 +781,34 @@ function renderTrip(id){
       ${otherFees}
       ${feeInput('Sales tax', 'tax', t.tax)}
       ${feeInput('Receipt total', 'total', t.total)}
-      <div class="small muted" style="margin-top:8px;">Fees &amp; tip are split in proportion to each person's items. Tax follows the taxable items only.</div>
+      <div class="small muted" style="margin-top:8px;">Fees and tip divide in proportion to each person's items. Tax follows the taxable items.</div>
     </div>
 
-    <h2 id="outputs">Copy into your sheet</h2>
+    <h2 id="outputs">Copy to Sheet</h2>
     <div class="card">
       <div class="outrow">
         <span class="dot dot-SH"></span>
-        <div class="grow"><div style="font-weight:700;">Shared &nbsp;<span class="money">${money(r.totals.SH)}</span></div>
+        <div class="grow"><div style="font-weight:600;">Shared &nbsp;<span class="money">${money(r.totals.SH)}</span></div>
           <div class="small muted outdesc">${esc(t.description)}</div></div>
-        <button class="copybtn copy-SH" onclick="A.copyRow('shared')">⧉ A:B</button>
+        <button class="copybtn copy-SH" onclick="A.copyRow('shared')">${IC.copy}A:B</button>
       </div>
       <div class="outrow">
         <span class="dot dot-S"></span>
-        <div class="grow"><div style="font-weight:700;">Steph &nbsp;<span class="money">${money(r.totals.S)}</span></div>
+        <div class="grow"><div style="font-weight:600;">Steph &nbsp;<span class="money">${money(r.totals.S)}</span></div>
           <div class="small muted outdesc">${esc(t.description)}</div></div>
-        <button class="copybtn copy-S" onclick="A.copyRow('steph')">⧉ C:D</button>
+        <button class="copybtn copy-S" onclick="A.copyRow('steph')">${IC.copy}C:D</button>
       </div>
       <div class="outrow">
-        <div class="grow"><div style="font-weight:700;">Full row</div>
-          <div class="small muted">Shared + Steph, values &amp; descriptions — one paste fills A→D</div></div>
-        <button class="copybtn copy-full" onclick="A.copyRow('fullRow')">⧉ Copy A→D</button>
+        <div class="grow"><div style="font-weight:600;">Full row</div>
+          <div class="small muted">One paste fills columns A through D</div></div>
+        <button class="copybtn copy-full" onclick="A.copyRow('fullRow')">${IC.copy}A–D</button>
       </div>
-      <div class="sumline" style="margin-top:10px;"><span class="muted">Collin (stays on your card — not logged)</span>
+      <div class="sumline" style="margin-top:10px;"><span class="muted">Collin · not logged to the sheet</span>
         <span class="money" style="color:var(--c);">${money(r.totals.C)}</span></div>
-      <div class="sumline"><span class="muted">All three together</span>
+      <div class="sumline"><span class="muted">Total</span>
         <span class="money">${money(r.totals.C + r.totals.S + r.totals.SH)}</span></div>
       <details>
-        <summary>How these numbers were computed</summary>
+        <summary>Calculation details</summary>
         <div class="tablewrap"><table class="bd">
           <tr><th></th><th>Collin</th><th>Steph</th><th>Shared</th></tr>
           <tr><td>Items</td><td>${money(r.detail.items.C)}</td><td>${money(r.detail.items.S)}</td><td>${money(r.detail.items.SH)}</td></tr>
@@ -805,15 +826,15 @@ function renderTrip(id){
         <span><span class="dot dot-S"></span>${money(r.totals.S)}</span>
         <span><span class="dot dot-SH"></span>${money(r.totals.SH)}</span>
       </div>
-      <button class="btn btn-primary btn-sm" style="display:inline-block;width:auto;" onclick="document.getElementById('outputs').scrollIntoView({behavior:'smooth'})">Copy ↓</button>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('outputs').scrollIntoView({behavior:'smooth'})">Copy</button>
     </div></div>`;
 }
 
 function splitNote(it){
   const q = Math.max(1, num(it.qty));
   const assigned = num(it.split.C) + num(it.split.S) + num(it.split.SH);
-  if(assigned < q) return `${q - assigned} of ${q} unassigned — they stay with ${CAT_LABEL[it.assign]}.`;
-  if(assigned > q) return `Careful: ${assigned} assigned but quantity is ${q}.`;
+  if(assigned < q) return `${q - assigned} of ${q} unassigned; they stay with ${CAT_LABEL[it.assign]}.`;
+  if(assigned > q) return `${assigned} assigned; quantity is ${q}.`;
   return `All ${q} assigned.`;
 }
 
@@ -847,8 +868,8 @@ const A = {
         body: JSON.stringify({ model, max_tokens:1, messages:[{role:'user', content:'hi'}] })
       });
       const j = await r.json();
-      out.textContent = (j.type === 'error') ? ('✗ ' + (j.error?.message || 'error')) : '✓ Key works';
-    }catch(e){ out.textContent = '✗ Network error — check connection'; }
+      out.textContent = (j.type === 'error') ? ('Error: ' + (j.error?.message || 'request failed')) : 'Key verified';
+    }catch(e){ out.textContent = 'Network error. Check your connection.'; }
   },
 
   // new trip images
@@ -864,7 +885,7 @@ const A = {
   async parse(){
     const btn = $('parseBtn'), st = $('parseStatus');
     btn.disabled = true;
-    const msgs = ['Reading your screenshots…', 'Finding items and prices…', 'Checking fees, tip and tax…', 'Almost there…'];
+    const msgs = ['Reading screenshots…', 'Identifying items and prices…', 'Checking fees, tip, and tax…'];
     let mi = 0;
     st.innerHTML = `<div class="banner banner-info"><span class="spin"></span><span id="pmsg">${msgs[0]}</span></div>`;
     const tick = setInterval(() => { mi = (mi+1) % msgs.length; const el = $('pmsg'); if(el) el.textContent = msgs[mi]; }, 4000);
@@ -875,11 +896,11 @@ const A = {
       trips.unshift(t); persist();
       pendingImages = [];
       renderTrip(t.id);
-      toast('Trip loaded — assign the items');
+      toast('Trip ready');
     }catch(e){
       clearInterval(tick);
       btn.disabled = false;
-      st.innerHTML = `<div class="banner banner-err"><b>Couldn't read the screenshots.</b><br>${esc(e.message)}<br><span class="small">Check your API key in Settings, your connection, and try again.</span></div>`;
+      st.innerHTML = `<div class="banner banner-err"><b>Unable to read the screenshots.</b><br>${esc(e.message)}<br><span class="small">Check the API key in Settings and your connection, then try again.</span></div>`;
     }
   },
 
@@ -995,7 +1016,7 @@ const A = {
   copyRow(kind){
     const t = tripById(currentTripId); if(!t) return;
     const rows = rowStrings(t);
-    const labels = { shared:'Shared row copied — paste in col A', steph:'Steph row copied — paste in col C', fullRow:'Full row copied — paste in col A' };
+    const labels = { shared:'Copied. Paste at column A.', steph:'Copied. Paste at column C.', fullRow:'Copied. Paste at column A.' };
     copyText(rows[kind], labels[kind]);
   }
 };
