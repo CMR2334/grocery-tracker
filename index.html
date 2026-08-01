@@ -143,6 +143,8 @@
   .thumb .rm::before{content:''; position:absolute; inset:9px; border-radius:50%; background:rgba(0,0,0,.62); z-index:-1;}
   .filelabel{display:flex; flex-direction:column; align-items:center; gap:7px; border:1px dashed var(--line); border-radius:14px; padding:26px 14px;
     text-align:center; color:var(--muted); font-weight:600; font-size:14.5px; cursor:pointer; background:var(--card);}
+  .newtrip-drop{min-height:calc(100vh - 124px);}
+  .newtrip-drop.dragging .filelabel{border-color:var(--c); background:var(--c-bg); color:var(--c);}
   .filelabel input{display:none;}
   .filelabel .ic{width:24px; height:24px;}
 
@@ -246,9 +248,16 @@ function load(key, fallback){
 let settings = load('gt_settings', { apiKey:'', model:'claude-opus-5' });
 let trips    = load('gt_trips', []);
 let pendingImages = [];      // data URLs for the new-trip flow
+let newTripDragDepth = 0;
+let parsing = false;
 let editItemId = null;
 let editPromoId = null;
 let currentTripId = null;
+
+window.addEventListener('dragend', () => {
+  newTripDragDepth = 0;
+  document.querySelector('.newtrip-drop')?.classList.remove('dragging');
+});
 
 function persist(){
   try{
@@ -601,22 +610,26 @@ function renderSettings(){
 }
 
 function renderNew(){
+  newTripDragDepth = 0;
   const thumbs = pendingImages.map((u, i) => `
     <div class="thumb"><img src="${u}" alt="screenshot ${i+1}">
       <button class="rm" onclick="A.removeImage(${i})" aria-label="Remove">${IC.x.replace('class="ic"','class="ic" style="width:13px;height:13px;"')}</button></div>`).join('');
-  $('app').innerHTML = `
+  $('app').innerHTML = `<div class="newtrip-drop"
+    ondragenter="A.dragEnter(event)" ondragover="A.dragOver(event)"
+    ondragleave="A.dragLeave(event)" ondrop="A.dropImages(event)">
     <div class="topbar">
       <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">${IC.back}</button><h1>New Trip</h1></div>
     </div>
     <label class="filelabel">
-      <input type="file" accept="image/*" multiple onchange="A.addImages(this.files)">
+      <input type="file" accept="image/*" multiple onchange="A.selectImages(this)">
       ${IC.image}<span style="color:var(--ink);">Add Screenshots</span><span class="small" style="font-weight:400;">Cart or receipt, plus the fees and total summary</span>
     </label>
     <div class="thumbs">${thumbs}</div>
     <div id="parseStatus"></div>
-    <button class="btn btn-primary" id="parseBtn" onclick="A.parse()" ${pendingImages.length && settings.apiKey ? '' : 'disabled'}>
+    <button class="btn btn-primary" id="parseBtn" onclick="A.parse()" ${pendingImages.length && settings.apiKey && !parsing ? '' : 'disabled'}>
       Analyze Screenshots</button>
-    ${settings.apiKey ? '' : `<div class="banner banner-warn" style="margin-top:12px;">Add your API key in Settings first.</div>`}`;
+    ${settings.apiKey ? '' : `<div class="banner banner-warn" style="margin-top:12px;">Add your API key in Settings first.</div>`}
+    </div>`;
 }
 
 function catSeg(activeKey, handler){
@@ -873,6 +886,35 @@ const A = {
   },
 
   // new trip images
+  selectImages(input){
+    if(parsing){ input.value = ''; toast('Hold on — still analyzing'); return; }
+    const files = Array.from(input.files || []);
+    input.value = '';
+    this.addImages(files);
+  },
+  dragEnter(e){
+    e.preventDefault();
+    newTripDragDepth++;
+    e.currentTarget.classList.add('dragging');
+  },
+  dragOver(e){
+    e.preventDefault();
+    if(e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  },
+  dragLeave(e){
+    newTripDragDepth = Math.max(0, newTripDragDepth - 1);
+    if(!newTripDragDepth) e.currentTarget.classList.remove('dragging');
+  },
+  dropImages(e){
+    e.preventDefault();
+    newTripDragDepth = 0;
+    e.currentTarget.classList.remove('dragging');
+    if(parsing){ toast('Hold on — still analyzing'); return; }
+    const dropped = Array.from(e.dataTransfer?.files || []);
+    const images = dropped.filter(f => f.type.startsWith('image/'));
+    if(dropped.length && !images.length){ toast('Drop image files only'); return; }
+    this.addImages(images);
+  },
   async addImages(files){
     if(!files || !files.length) return;
     try{
@@ -880,27 +922,34 @@ const A = {
     }catch(e){ toast('Could not read an image'); }
     renderNew();
   },
-  removeImage(i){ pendingImages.splice(i, 1); renderNew(); },
+  removeImage(i){
+    if(parsing){ toast('Hold on — still analyzing'); return; }
+    pendingImages.splice(i, 1); renderNew();
+  },
 
   async parse(){
-    const btn = $('parseBtn'), st = $('parseStatus');
-    btn.disabled = true;
-    const msgs = ['Reading screenshots…', 'Identifying items and prices…', 'Checking fees, tip, and tax…'];
-    let mi = 0;
-    st.innerHTML = `<div class="banner banner-info"><span class="spin"></span><span id="pmsg">${msgs[0]}</span></div>`;
-    const tick = setInterval(() => { mi = (mi+1) % msgs.length; const el = $('pmsg'); if(el) el.textContent = msgs[mi]; }, 4000);
+    if(parsing){ toast('Hold on — still analyzing'); return; }
+    parsing = true;
+    let btn, st, tick;
     try{
+      btn = $('parseBtn'); st = $('parseStatus');
+      btn.disabled = true;
+      const msgs = ['Reading screenshots…', 'Identifying items and prices…', 'Checking fees, tip, and tax…'];
+      let mi = 0;
+      st.innerHTML = `<div class="banner banner-info"><span class="spin"></span><span id="pmsg">${msgs[0]}</span></div>`;
+      tick = setInterval(() => { mi = (mi+1) % msgs.length; const el = $('pmsg'); if(el) el.textContent = msgs[mi]; }, 4000);
       const parsed = await parseScreenshots(pendingImages);
-      clearInterval(tick);
       const t = buildTrip(parsed);
       trips.unshift(t); persist();
       pendingImages = [];
       renderTrip(t.id);
       toast('Trip ready');
     }catch(e){
-      clearInterval(tick);
       btn.disabled = false;
       st.innerHTML = `<div class="banner banner-err"><b>Unable to read the screenshots.</b><br>${esc(e.message)}<br><span class="small">Check the API key in Settings and your connection, then try again.</span></div>`;
+    }finally{
+      clearInterval(tick);
+      parsing = false;
     }
   },
 
