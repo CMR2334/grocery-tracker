@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Grocery $ Tracker Helper</title>
+<style>
+  :root{
+    --bg:#f6f6f4; --card:#ffffff; --ink:#1a1c20; --muted:#6b7280; --line:#e6e6e1;
+    --c:#2563eb; --c-bg:#eaf0fe;
+    --s:#7c3aed; --s-bg:#f1eafe;
+    --sh:#0f9d8f; --sh-bg:#e4f5f3;
+    --green:#15803d; --green-bg:#e8f5ec;
+    --amber:#b45309; --amber-bg:#fdf3e3;
+    --red:#b91c1c; --red-bg:#fdecec;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101214; --card:#1b1e22; --ink:#ececec; --muted:#9aa0a6; --line:#2b2f34;
+      --c:#6a96f5; --c-bg:#1c2740;
+      --s:#a98af0; --s-bg:#2a2140;
+      --sh:#3fc0b2; --sh-bg:#12332f;
+      --green:#4fc073; --green-bg:#15301e;
+      --amber:#e0a34c; --amber-bg:#3a2c14;
+      --red:#e57373; --red-bg:#3a1a1a;
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #app{max-width:540px; margin:0 auto; padding:14px 16px 110px;
+    padding-left:max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right));}
+  h1{font-size:22px; margin:0;}
+  h2{font-size:15px; margin:22px 0 8px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:700;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0 14px;}
+  .topbar .side{display:flex; gap:8px; align-items:center;}
+  .iconbtn{border:1px solid var(--line); background:var(--card); color:var(--ink);
+    border-radius:12px; padding:9px 12px; font-size:16px; cursor:pointer; line-height:1;}
+  .btn{display:block; width:100%; border:none; border-radius:13px; padding:15px;
+    font-size:16px; font-weight:700; cursor:pointer; text-align:center;}
+  .btn-primary{background:var(--green); color:#fff;}
+  .btn-primary:disabled{opacity:.45;}
+  .btn-ghost{background:var(--card); color:var(--ink); border:1px solid var(--line);}
+  .btn-sm{display:inline-block; width:auto; padding:9px 13px; font-size:13.5px; border-radius:10px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .muted{color:var(--muted);}
+  .small{font-size:12.5px;}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .grow{flex:1; min-width:0;}
+  .in{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:11px;
+    font-size:16px; background:var(--bg); color:var(--ink); font-family:inherit;}
+  .in:focus{outline:2px solid var(--c); outline-offset:0;}
+  .in-money{width:96px; text-align:right; padding:8px 10px;}
+  .in-qty{width:64px; text-align:center; padding:8px 6px;}
+  label.flabel{display:block; font-size:12.5px; color:var(--muted); font-weight:600; margin:12px 0 5px;}
+
+  /* segmented control */
+  .seg{display:flex; background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:3px; gap:3px;}
+  .seg button{flex:1; border:none; background:transparent; color:var(--muted); font-weight:700;
+    font-size:13.5px; padding:9px 4px; border-radius:8px; cursor:pointer; font-family:inherit;}
+  .seg button.on-C{background:var(--c); color:#fff;}
+  .seg button.on-S{background:var(--s); color:#fff;}
+  .seg button.on-SH{background:var(--sh); color:#fff;}
+
+  .chip{display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px;
+    font-size:12px; font-weight:700; border:1px solid var(--line); background:var(--bg); color:var(--muted); cursor:pointer;}
+  .chip.on{background:var(--amber-bg); color:var(--amber); border-color:transparent;}
+  .qtybadge{display:inline-block; background:var(--bg); border:1px solid var(--line); color:var(--muted);
+    font-size:12px; font-weight:700; border-radius:7px; padding:2px 7px; vertical-align:1px;}
+  .dot{display:inline-block; width:9px; height:9px; border-radius:50%;}
+  .dot-C{background:var(--c);} .dot-S{background:var(--s);} .dot-SH{background:var(--sh);}
+  .money{font-variant-numeric:tabular-nums; font-weight:700;}
+
+  .banner{border-radius:12px; padding:11px 13px; font-size:13.5px; margin-bottom:12px; line-height:1.45;}
+  .banner-ok{background:var(--green-bg); color:var(--green);}
+  .banner-warn{background:var(--amber-bg); color:var(--amber);}
+  .banner-err{background:var(--red-bg); color:var(--red);}
+  .banner-info{background:var(--c-bg); color:var(--c);}
+
+  .itemname{font-weight:600; font-size:14.5px; line-height:1.35; overflow-wrap:anywhere;}
+  .itemcard .seg{margin-top:10px;}
+  .itemtools{display:flex; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap;}
+  .linklike{background:none; border:none; color:var(--c); font-weight:600; font-size:13px; cursor:pointer; padding:4px 2px; font-family:inherit;}
+  .linklike.danger{color:var(--red);}
+
+  .splitpanel{margin-top:10px; border-top:1px dashed var(--line); padding-top:10px;}
+  .splitrow{display:flex; align-items:center; justify-content:space-between; margin-bottom:7px;}
+  .stepper{display:flex; align-items:center; gap:0; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .stepper button{width:38px; height:34px; border:none; background:var(--bg); color:var(--ink); font-size:18px; cursor:pointer;}
+  .stepper .cnt{width:36px; text-align:center; font-weight:700; font-size:15px;}
+
+  .modes{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .modes button{border:1px solid var(--line); background:var(--bg); color:var(--muted); font-weight:700;
+    font-size:12.5px; padding:8px 11px; border-radius:9px; cursor:pointer; font-family:inherit;}
+  .modes button.on-C{background:var(--c); border-color:var(--c); color:#fff;}
+  .modes button.on-S{background:var(--s); border-color:var(--s); color:#fff;}
+  .modes button.on-SH{background:var(--sh); border-color:var(--sh); color:#fff;}
+  .modes button.on-X{background:var(--ink); border-color:var(--ink); color:var(--bg);}
+
+  .feerow{display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-size:14.5px;}
+  .feerow:last-child{border-bottom:none;}
+
+  .outrow{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .outrow:last-child{border-bottom:none;}
+  .copybtn{border:none; border-radius:10px; padding:9px 13px; font-weight:700; font-size:13px; cursor:pointer; color:#fff; white-space:nowrap; font-family:inherit;}
+  .copy-S{background:var(--s);} .copy-SH{background:var(--sh);} .copy-full{background:var(--ink); color:var(--bg);}
+
+  .sumline{display:flex; justify-content:space-between; font-size:14px; padding:4px 0;}
+  details{margin-top:6px;}
+  details summary{cursor:pointer; font-weight:700; font-size:13.5px; color:var(--muted); padding:6px 0;}
+  table.bd{width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  table.bd th, table.bd td{padding:5px 4px; text-align:right; border-bottom:1px solid var(--line);}
+  table.bd th:first-child, table.bd td:first-child{text-align:left; color:var(--muted); font-weight:600;}
+  table.bd tr:last-child td{border-bottom:none; font-weight:800;}
+
+  .thumbs{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:12px 0;}
+  .thumb{position:relative; border-radius:11px; overflow:hidden; border:1px solid var(--line);}
+  .thumb img{display:block; width:100%; height:130px; object-fit:cover;}
+  .thumb .rm{position:absolute; top:5px; right:5px; width:26px; height:26px; border-radius:50%;
+    border:none; background:rgba(0,0,0,.62); color:#fff; font-size:14px; cursor:pointer; line-height:1;}
+  .filelabel{display:block; border:1.5px dashed var(--line); border-radius:13px; padding:26px 14px;
+    text-align:center; color:var(--muted); font-weight:600; cursor:pointer; background:var(--card);}
+  .filelabel input{display:none;}
+
+  .spin{display:inline-block; width:17px; height:17px; border:2.5px solid var(--line);
+    border-top-color:var(--green); border-radius:50%; animation:sp .8s linear infinite; vertical-align:-3px; margin-right:8px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  .triprow{display:flex; align-items:center; gap:11px; padding:13px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .triprow:last-child{border-bottom:none;}
+  .triprow .tinfo{flex:1; min-width:0;}
+  .triprow .tname{font-weight:700; font-size:15px;}
+  .triprow .tsub{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .tamounts{text-align:right; font-size:12.5px; line-height:1.5; white-space:nowrap;}
+
+  .stickybar{position:fixed; left:0; right:0; bottom:0; border-top:1px solid var(--line);
+    background:color-mix(in srgb, var(--card) 88%, transparent); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom)); z-index:30;}
+  .stickybar .inner{max-width:540px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .stickybar .tots{display:flex; gap:11px; font-size:13px; font-weight:700; flex-wrap:wrap;}
+  .stickybar .tots span{display:inline-flex; align-items:center; gap:5px;}
+
+  #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:96px; background:var(--ink); color:var(--bg);
+    padding:10px 18px; border-radius:999px; font-size:14px; font-weight:700; opacity:0; pointer-events:none;
+    transition:opacity .18s; z-index:60; white-space:nowrap;}
+  #toast.show{opacity:1;}
+  .empty{padding:34px 10px; text-align:center; color:var(--muted); font-size:14.5px; line-height:1.6;}
+  .desc-wrap{margin-bottom:12px;}
+  .counter{font-size:12px; color:var(--muted); text-align:right; margin-top:4px;}
+  .counter.over{color:var(--red); font-weight:700;}
+  .checkitem{display:flex; align-items:center; gap:9px; padding:7px 0; font-size:14px;}
+  .checkitem input{width:19px; height:19px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ============================================================
+   Grocery $ Tracker Helper
+   Splits grocery receipts between Collin / Steph / Shared and
+   produces copy-paste rows for the Google Sheet (value ⇥ desc).
+   All math is deterministic in this file; the AI only extracts
+   items/fees/tax/promos from the screenshots.
+   ============================================================ */
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+let _idc = 0;
+const uid = () => 'x' + Date.now().toString(36) + (_idc++).toString(36) + Math.random().toString(36).slice(2,6);
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const round2 = v => Math.round(num(v) * 100) / 100;
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const money = cents => (cents < 0 ? '-' : '') + '$' + (Math.abs(cents)/100).toFixed(2);
+const moneyN = n => money(Math.round(n*100));
+
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+async function copyText(str, okMsg){
+  try{
+    await navigator.clipboard.writeText(str);
+    toast(okMsg || 'Copied ✓');
+  }catch(e){
+    // fallback for non-secure contexts
+    const ta = document.createElement('textarea');
+    ta.value = str; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast(okMsg || 'Copied ✓'); }
+    catch(e2){ toast('Copy failed'); }
+    ta.remove();
+  }
+}
+
+// ---------- state ----------
+const CATS = [ {k:'C', label:'Collin'}, {k:'S', label:'Steph'}, {k:'SH', label:'Shared'} ];
+const CAT_LABEL = {C:'Collin', S:'Steph', SH:'Shared'};
+
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+let settings = load('gt_settings', { apiKey:'', model:'claude-opus-5' });
+let trips    = load('gt_trips', []);
+let pendingImages = [];      // data URLs for the new-trip flow
+let editItemId = null;
+let editPromoId = null;
+let currentTripId = null;
+
+function persist(){
+  try{
+    localStorage.setItem('gt_settings', JSON.stringify(settings));
+    localStorage.setItem('gt_trips', JSON.stringify(trips));
+  }catch(e){ toast('Could not save (storage full?)'); }
+}
+const tripById = id => trips.find(t => t.id === id);
+
+// ---------- core math ----------
+// Returns everything in integer cents.
+function computeTotals(t){
+  const cats = ['C','S','SH'];
+  const zero = () => ({C:0,S:0,SH:0});
+  const items = zero(), taxBase = zero(), fees = zero(), tax = zero(), promos = zero();
+  const warnings = [];
+
+  const lineSum = t.items.reduce((a,i) => a + num(i.lineTotal), 0);
+
+  // ownership fractions for one item (qty splits; remainder stays with primary)
+  function fractions(it){
+    const f = {C:0,S:0,SH:0};
+    if(it.split){
+      const q = Math.max(1, num(it.qty) || 1);
+      let assigned = 0;
+      for(const c of cats){
+        const n = Math.max(0, Math.min(q, num(it.split[c])));
+        f[c] = n / q; assigned += n;
+      }
+      if(assigned > q){
+        const tot = f.C + f.S + f.SH;
+        for(const c of cats) f[c] /= tot;   // over-assigned: normalize
+        warnings.push(`"${it.name}" split adds to more than its quantity — proportions were scaled.`);
+      }else if(assigned < q){
+        f[it.assign] += (q - assigned) / q; // remainder stays with primary pick
+      }
+    }else{
+      f[it.assign] = 1;
+    }
+    return f;
+  }
+
+  const itemFr = {};
+  for(const it of t.items){
+    const f = fractions(it); itemFr[it.id] = f;
+    const amt = num(it.lineTotal);
+    for(const c of cats){
+      items[c] += amt * f[c];
+      if(it.taxable) taxBase[c] += amt * f[c];
+    }
+  }
+
+  // fees + tip: proportional to each person's pre-tax item total
+  const feeTotal = num(t.fees.service) + num(t.fees.delivery) + num(t.fees.tip)
+                 + (t.fees.other || []).reduce((a,o) => a + num(o.amount), 0);
+  if(lineSum > 0){
+    for(const c of cats) fees[c] = feeTotal * items[c] / lineSum;
+  }else{
+    fees.C = feeTotal;
+  }
+
+  // tax: receipt's actual tax spread across taxable items proportionally
+  const taxTotal = num(t.tax);
+  const taxBaseSum = taxBase.C + taxBase.S + taxBase.SH;
+  if(taxTotal > 0){
+    if(taxBaseSum > 0){
+      for(const c of cats) tax[c] = taxTotal * taxBase[c] / taxBaseSum;
+    }else if(lineSum > 0){
+      for(const c of cats) tax[c] = taxTotal * items[c] / lineSum;
+      warnings.push('Receipt shows tax but no item is marked taxable — tax was spread across all items. Tap the TAX chip on the taxable items.');
+    }else{
+      tax.C = taxTotal;
+    }
+  }
+
+  // promos / discounts
+  let promoTotal = 0;
+  for(const p of (t.promos || [])){
+    const amt = Math.abs(num(p.amount));
+    promoTotal += amt;
+    if(p.mode === 'C' || p.mode === 'S' || p.mode === 'SH'){
+      promos[p.mode] += amt;
+    }else if(p.mode === 'split'){
+      let s = Math.max(0, num(p.splitS)), sh = Math.max(0, num(p.splitSH));
+      if(s + sh > amt && (s + sh) > 0){
+        const f = amt / (s + sh); s *= f; sh *= f;
+        warnings.push(`"${p.label}" split exceeds the discount amount — Steph/Shared portions were scaled down.`);
+      }
+      promos.S += s; promos.SH += sh; promos.C += amt - s - sh;
+    }else if(p.mode === 'items'){
+      const sel = t.items.filter(i => (p.itemIds || []).includes(i.id));
+      const selSum = sel.reduce((a,i) => a + num(i.lineTotal), 0);
+      if(sel.length && selSum > 0){
+        for(const it of sel){
+          const share = amt * num(it.lineTotal) / selSum;
+          const f = itemFr[it.id];
+          for(const c of cats) promos[c] += share * f[c];
+        }
+      }else{
+        promos.C += amt;
+        if(sel.length === 0) warnings.push(`"${p.label}" is set to apply to specific items but none are selected — it went to Collin.`);
+      }
+    }else{
+      promos.C += amt;
+    }
+  }
+
+  // round to cents; pin the rounded sum to the computed grand total
+  const computedTotal = lineSum + feeTotal + taxTotal - promoTotal;
+  const out = {};
+  for(const c of cats){
+    out[c] = Math.round((items[c] + fees[c] + tax[c] - promos[c]) * 100);
+  }
+  const drift = Math.round(computedTotal * 100) - (out.C + out.S + out.SH);
+  if(drift !== 0){
+    // absorb penny drift into the largest bucket (usually Collin)
+    let big = 'C';
+    for(const c of cats) if(Math.abs(out[c]) > Math.abs(out[big])) big = c;
+    out[big] += drift;
+  }
+
+  const r = o => ({C:Math.round(o.C*100), S:Math.round(o.S*100), SH:Math.round(o.SH*100)});
+  return {
+    totals: out,
+    detail: { items:r(items), fees:r(fees), tax:r(tax), promos:r(promos) },
+    lineSum: Math.round(lineSum*100),
+    feeTotal: Math.round(feeTotal*100),
+    taxTotal: Math.round(taxTotal*100),
+    promoTotal: Math.round(promoTotal*100),
+    computedTotal: Math.round(computedTotal*100),
+    receiptTotal: Math.round(num(t.total)*100),
+    warnings
+  };
+}
+
+// clipboard strings — sheet layout: A=Shared $, B=Shared desc, C=Steph $, D=Steph desc
+function rowStrings(t){
+  const r = computeTotals(t);
+  const d = t.description || '';
+  return {
+    shared:  money(r.totals.SH) + '\t' + d,
+    steph:   money(r.totals.S) + '\t' + d,
+    fullRow: money(r.totals.SH) + '\t' + d + '\t' + money(r.totals.S) + '\t' + d
+  };
+}
+
+// ---------- AI parsing ----------
+const PARSE_SCHEMA = {
+  type:'object', additionalProperties:false,
+  required:['store','date','items','fees','promos','tax','subtotal','total','notes'],
+  properties:{
+    store:{type:'string', description:'Store name, e.g. "Aldi", "Pick \'n Save", "Walmart". Best guess from branding.'},
+    date:{type:'string', description:'Order/receipt date as "M/D" with no leading zeros if visible anywhere, else empty string.'},
+    items:{type:'array', items:{
+      type:'object', additionalProperties:false,
+      required:['name','qty','line_total','taxable','tax_reason'],
+      properties:{
+        name:{type:'string', description:'Product name as shown, size suffix ok.'},
+        qty:{type:'integer', description:'Quantity for this line.'},
+        line_total:{type:'number', description:'Final charged price for the whole line (qty included), using sale price when an original price is struck through.'},
+        taxable:{type:'boolean', description:'Wisconsin sales-tax guess for this item.'},
+        tax_reason:{type:'string', description:'Very short reason, e.g. "grocery food - exempt", "candy - taxable".'}
+      }
+    }},
+    fees:{type:'object', additionalProperties:false,
+      required:['service','delivery','tip','other'],
+      properties:{
+        service:{type:'number', description:'Service fee, 0 if none.'},
+        delivery:{type:'number', description:'Delivery fee actually charged (0 if free/waived).'},
+        tip:{type:'number', description:'Tip, 0 if none.'},
+        other:{type:'array', items:{
+          type:'object', additionalProperties:false, required:['label','amount'],
+          properties:{ label:{type:'string'}, amount:{type:'number'} }
+        }, description:'Other fees like bag fee or heavy order fee.'}
+      }
+    },
+    promos:{type:'array', items:{
+      type:'object', additionalProperties:false, required:['label','amount'],
+      properties:{
+        label:{type:'string', description:'Short label, e.g. "$10 off any store".'},
+        amount:{type:'number', description:'Discount amount as a POSITIVE number.'}
+      }
+    }, description:'Discounts/credits applied to THIS order. Exclude next-order offers.'},
+    tax:{type:'number', description:'Sales tax charged on this order; 0 if no tax line.'},
+    subtotal:{type:'number', description:'Item subtotal shown (final, after item sale prices); 0 if not visible.'},
+    total:{type:'number', description:'Final charged total; 0 if not visible.'},
+    notes:{type:'string', description:'Anything ambiguous, unreadable, or worth flagging to the user. Empty string if nothing.'}
+  }
+};
+
+const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a store app, or a paper receipt photo). Extract the order into the JSON schema. Rules:
+
+- Screenshots may be scrolled captures of the SAME order with overlapping rows — deduplicate; each product appears once.
+- One screenshot may be a checkout/summary view — use it for fees, tip, delivery, promos, tax, and total.
+- line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
+- Delivery shown as $0.00 (e.g. free with Instacart+) = 0. Ignore the crossed-out original fee.
+- Promos: only discounts applied to this order (negative lines in the summary), recorded as positive amounts. IGNORE banners about credits or offers "on your next order".
+- Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
+- date: only if a date is actually visible; else empty string.
+- If item prices don't sum to the shown subtotal, or anything is unreadable, say so in notes.`;
+
+async function parseScreenshots(dataUrls){
+  const content = dataUrls.map(u => {
+    const m = u.match(/^data:(image\/\w+);base64,(.*)$/s);
+    return { type:'image', source:{ type:'base64', media_type:m[1], data:m[2] } };
+  });
+  content.push({ type:'text', text: PARSE_PROMPT });
+
+  const body = {
+    model: settings.model,
+    max_tokens: 16000,
+    output_config: { format: { type:'json_schema', schema: PARSE_SCHEMA } },
+    messages: [{ role:'user', content }]
+  };
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'content-type':'application/json',
+      'x-api-key': settings.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify(body)
+  });
+  const json = await resp.json();
+  if(json.type === 'error') throw new Error(json.error?.message || 'API error');
+  if(json.stop_reason === 'refusal') throw new Error('The model declined this request. Try again.');
+  const textBlock = (json.content || []).find(b => b.type === 'text');
+  if(!textBlock) throw new Error('No text in response.');
+  return JSON.parse(textBlock.text);
+}
+
+function buildTrip(p){
+  const today = new Date();
+  const dateStr = (p.date && p.date.trim()) ? p.date.trim() : `${today.getMonth()+1}/${today.getDate()}`;
+  const store = (p.store || 'Store').trim();
+  let desc = `${store} ${dateStr}`;
+  if(desc.length > 23) desc = desc.slice(0, 23).trim();
+  return {
+    id: uid(), createdAt: Date.now(), store, dateStr, description: desc,
+    items: (p.items || []).map(i => ({
+      id: uid(), name: i.name || 'Item',
+      qty: Math.max(1, Math.round(num(i.qty) || 1)),
+      lineTotal: round2(i.line_total),
+      taxable: !!i.taxable, taxReason: i.tax_reason || '',
+      assign: 'C', split: null
+    })),
+    fees: {
+      service: round2(p.fees && p.fees.service), delivery: round2(p.fees && p.fees.delivery),
+      tip: round2(p.fees && p.fees.tip),
+      other: ((p.fees && p.fees.other) || []).map(o => ({ label:o.label || 'Fee', amount: round2(o.amount) }))
+    },
+    promos: (p.promos || []).map(o => ({
+      id: uid(), label: o.label || 'Discount', amount: Math.abs(round2(o.amount)),
+      mode: 'C', splitS: 0, splitSH: 0, itemIds: []
+    })),
+    tax: round2(p.tax), subtotal: round2(p.subtotal), total: round2(p.total),
+    notes: p.notes || ''
+  };
+}
+
+// ---------- image handling ----------
+function readFileAsDataUrl(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('Could not read file'));
+    fr.readAsDataURL(file);
+  });
+}
+function loadImage(url){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('Could not load image'));
+    img.src = url;
+  });
+}
+async function compressImage(file){
+  const url = await readFileAsDataUrl(file);
+  const img = await loadImage(url);
+  const MAX = 1568;
+  const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+// ---------- views ----------
+function renderHome(){
+  currentTripId = null;
+  const list = trips.map(t => {
+    const r = computeTotals(t);
+    return `<div class="triprow" onclick="A.openTrip('${t.id}')">
+      <div class="tinfo">
+        <div class="tname">${esc(t.description || (t.store + ' ' + t.dateStr))}</div>
+        <div class="tsub">${esc(t.store)} · ${t.items.length} item${t.items.length===1?'':'s'} · ${new Date(t.createdAt).toLocaleDateString()}</div>
+      </div>
+      <div class="tamounts">
+        <span class="dot dot-SH"></span> ${money(r.totals.SH)}<br>
+        <span class="dot dot-S"></span> ${money(r.totals.S)}
+      </div>
+      <button class="iconbtn" onclick="event.stopPropagation();A.deleteTrip('${t.id}')" aria-label="Delete trip">🗑</button>
+    </div>`;
+  }).join('');
+
+  $('app').innerHTML = `
+    <div class="topbar">
+      <h1>Grocery $ Tracker</h1>
+      <div class="side"><button class="iconbtn" onclick="A.goSettings()" aria-label="Settings">⚙️</button></div>
+    </div>
+    ${settings.apiKey ? '' : `<div class="banner banner-info">First run: add your Anthropic API key in <b>Settings ⚙️</b> so the app can read screenshots.</div>`}
+    <button class="btn btn-primary" onclick="A.goNew()">＋ &nbsp;New Trip</button>
+    <h2>Past trips</h2>
+    <div class="card" style="padding:4px 14px;">
+      ${trips.length ? list : `<div class="empty">No trips yet.<br>Tap <b>New Trip</b> and upload your order screenshots.</div>`}
+    </div>`;
+}
+
+function renderSettings(){
+  $('app').innerHTML = `
+    <div class="topbar">
+      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">←</button><h1>Settings</h1></div>
+    </div>
+    <div class="card">
+      <label class="flabel" style="margin-top:0;">Anthropic API key</label>
+      <div class="row">
+        <input class="in grow" id="apiKey" type="password" placeholder="sk-ant-..." value="${esc(settings.apiKey)}" autocomplete="off">
+        <button class="iconbtn" onclick="A.toggleKey()" aria-label="Show key">👁</button>
+      </div>
+      <label class="flabel">Model</label>
+      <select class="in" id="model">
+        <option value="claude-opus-5" ${settings.model==='claude-opus-5'?'selected':''}>Claude Opus 5 — most accurate (~2–5¢/trip)</option>
+        <option value="claude-haiku-4-5" ${settings.model==='claude-haiku-4-5'?'selected':''}>Claude Haiku 4.5 — cheaper (~1¢/trip)</option>
+      </select>
+      <div style="margin-top:14px;" class="row">
+        <button class="btn btn-ghost btn-sm" onclick="A.testKey()">Test key</button>
+        <span id="testResult" class="small muted"></span>
+      </div>
+    </div>
+    <div class="card small muted" style="line-height:1.6;">
+      Your key is stored only in this browser on this device (localStorage) and is sent only to <b>api.anthropic.com</b>. Screenshots go directly from your phone to the Anthropic API for extraction — nowhere else. All splitting math runs on-device.
+    </div>
+    <button class="btn btn-primary" onclick="A.saveSettings()">Save</button>`;
+}
+
+function renderNew(){
+  const thumbs = pendingImages.map((u, i) => `
+    <div class="thumb"><img src="${u}" alt="screenshot ${i+1}">
+      <button class="rm" onclick="A.removeImage(${i})" aria-label="Remove">✕</button></div>`).join('');
+  $('app').innerHTML = `
+    <div class="topbar">
+      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">←</button><h1>New Trip</h1></div>
+    </div>
+    <label class="filelabel">
+      <input type="file" accept="image/*" multiple onchange="A.addImages(this.files)">
+      📸 &nbsp;Add screenshots<br><span class="small">cart / receipt + the fees &amp; total summary</span>
+    </label>
+    <div class="thumbs">${thumbs}</div>
+    <div id="parseStatus"></div>
+    <button class="btn btn-primary" id="parseBtn" onclick="A.parse()" ${pendingImages.length && settings.apiKey ? '' : 'disabled'}>
+      Read screenshots →</button>
+    ${settings.apiKey ? '' : `<div class="banner banner-warn" style="margin-top:12px;">Add your API key in Settings first.</div>`}`;
+}
+
+function catSeg(activeKey, handler){
+  return `<div class="seg">${CATS.map(c =>
+    `<button class="${activeKey===c.k ? 'on-'+c.k : ''}" onclick="${handler.replace('%K', c.k)}">${c.label}</button>`
+  ).join('')}</div>`;
+}
+
+function renderTrip(id){
+  currentTripId = id;
+  const t = tripById(id);
+  if(!t){ renderHome(); return; }
+  const r = computeTotals(t);
+  const showTax = num(t.tax) > 0;
+
+  // --- reconciliation banner ---
+  let banner = '';
+  const diff = r.computedTotal - r.receiptTotal;
+  if(r.receiptTotal > 0){
+    if(Math.abs(diff) <= 1){
+      banner = `<div class="banner banner-ok">✓ Everything adds up to the receipt total <b>${money(r.receiptTotal)}</b></div>`;
+    }else{
+      banner = `<div class="banner banner-warn">⚠️ Items + fees + tax − discounts = <b>${money(r.computedTotal)}</b> but the receipt total is <b>${money(r.receiptTotal)}</b> (off by ${money(diff)}). Check prices, fees, or discounts below.</div>`;
+    }
+  }
+  if(t.subtotal > 0 && Math.abs(r.lineSum - Math.round(t.subtotal*100)) > 1){
+    banner += `<div class="banner banner-warn">⚠️ Item prices sum to ${money(r.lineSum)} but the receipt subtotal is ${moneyN(t.subtotal)} — an item may be missing or misread.</div>`;
+  }
+  if(t.notes){
+    banner += `<div class="banner banner-info">📝 ${esc(t.notes)} <button class="linklike" onclick="A.clearNotes()">dismiss</button></div>`;
+  }
+  for(const w of r.warnings) banner += `<div class="banner banner-warn">⚠️ ${esc(w)}</div>`;
+
+  // --- items ---
+  const itemsHtml = t.items.map(it => {
+    if(editItemId === it.id){
+      return `<div class="card itemcard">
+        <label class="flabel" style="margin-top:0;">Item name</label>
+        <input class="in" value="${esc(it.name)}" onchange="A.editItem('${it.id}','name',this.value)">
+        <div class="row" style="margin-top:10px;">
+          <div><label class="flabel" style="margin:0 0 5px;">Qty</label>
+            <input class="in in-qty" type="number" min="1" step="1" value="${it.qty}" onchange="A.editItem('${it.id}','qty',this.value)"></div>
+          <div><label class="flabel" style="margin:0 0 5px;">Line price</label>
+            <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(it.lineTotal).toFixed(2)}" onchange="A.editItem('${it.id}','lineTotal',this.value)"></div>
+          <div class="grow"></div>
+          <button class="linklike danger" onclick="A.deleteItem('${it.id}')">Delete</button>
+          <button class="btn btn-ghost btn-sm" onclick="A.doneEditItem()">Done</button>
+        </div>
+      </div>`;
+    }
+    const splitPanel = it.split ? `
+      <div class="splitpanel">
+        ${CATS.map(c => `<div class="splitrow"><span style="font-weight:600;font-size:13.5px;"><span class="dot dot-${c.k}"></span> ${c.label}</span>
+          <div class="stepper">
+            <button onclick="A.stepSplit('${it.id}','${c.k}',-1)">−</button>
+            <span class="cnt">${num(it.split[c.k])}</span>
+            <button onclick="A.stepSplit('${it.id}','${c.k}',1)">＋</button>
+          </div></div>`).join('')}
+        <div class="small muted">${splitNote(it)}</div>
+        <button class="linklike" onclick="A.removeSplit('${it.id}')">Remove split</button>
+      </div>` : '';
+    return `<div class="card itemcard">
+      <div class="row">
+        <div class="itemname grow">${esc(it.name)} ${it.qty > 1 ? `<span class="qtybadge">×${it.qty}</span>` : ''}</div>
+        <div class="money">${moneyN(it.lineTotal)}</div>
+      </div>
+      ${catSeg(it.assign, `A.assign('${it.id}','%K')`)}
+      <div class="itemtools">
+        ${it.qty > 1 && !it.split ? `<button class="linklike" onclick="A.startSplit('${it.id}')">Split quantity</button>` : ''}
+        ${showTax ? `<button class="chip ${it.taxable ? 'on' : ''}" onclick="A.toggleTax('${it.id}')" title="${esc(it.taxReason)}">TAX ${it.taxable ? '✓' : '—'}</button>` : ''}
+        <div class="grow"></div>
+        <button class="linklike" onclick="A.startEditItem('${it.id}')">✎ Edit</button>
+      </div>
+      ${splitPanel}
+    </div>`;
+  }).join('');
+
+  // --- promos ---
+  const promosHtml = (t.promos || []).map(p => {
+    const modeBtn = (mode, label, cls) =>
+      `<button class="${p.mode===mode ? 'on-'+cls : ''}" onclick="A.promoMode('${p.id}','${mode}')">${label}</button>`;
+    let panel = '';
+    if(p.mode === 'split'){
+      const rem = Math.max(0, num(p.amount) - num(p.splitS) - num(p.splitSH));
+      panel = `<div class="splitpanel">
+        <div class="row" style="margin-bottom:8px;"><span style="font-size:13.5px;font-weight:600;"><span class="dot dot-S"></span> Steph gets</span>
+          <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.splitS).toFixed(2)}" onchange="A.promoSplit('${p.id}','splitS',this.value)"></div>
+        <div class="row" style="margin-bottom:8px;"><span style="font-size:13.5px;font-weight:600;"><span class="dot dot-SH"></span> Shared gets</span>
+          <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.splitSH).toFixed(2)}" onchange="A.promoSplit('${p.id}','splitSH',this.value)"></div>
+        <div class="small muted">Remaining ${moneyN(rem)} goes to Collin.</div>
+      </div>`;
+    }else if(p.mode === 'items'){
+      panel = `<div class="splitpanel">
+        <div class="small muted" style="margin-bottom:4px;">Discount is spread across the checked items (by price) and follows whoever each item is assigned to.</div>
+        ${t.items.map(it => `<label class="checkitem">
+          <input type="checkbox" ${(p.itemIds||[]).includes(it.id) ? 'checked' : ''} onchange="A.promoItemToggle('${p.id}','${it.id}',this.checked)">
+          <span class="grow">${esc(it.name)}</span><span class="money small">${moneyN(it.lineTotal)}</span>
+        </label>`).join('')}
+      </div>`;
+    }
+    const head = (editPromoId === p.id)
+      ? `<div class="row">
+           <input class="in grow" value="${esc(p.label)}" onchange="A.editPromo('${p.id}','label',this.value)">
+           <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.amount).toFixed(2)}" onchange="A.editPromo('${p.id}','amount',this.value)">
+           <button class="linklike danger" onclick="A.deletePromo('${p.id}')">Delete</button>
+           <button class="btn btn-ghost btn-sm" onclick="A.doneEditPromo()">Done</button>
+         </div>`
+      : `<div class="row">
+           <div class="itemname grow">🏷 ${esc(p.label)}</div>
+           <div class="money" style="color:var(--green);">−${moneyN(p.amount)}</div>
+           <button class="linklike" onclick="A.startEditPromo('${p.id}')">✎</button>
+         </div>`;
+    return `<div class="card">
+      ${head}
+      <div class="modes">
+        ${modeBtn('C','Collin','C')}${modeBtn('S','Steph','S')}${modeBtn('SH','Shared','SH')}
+        ${modeBtn('split','Split $…','X')}${modeBtn('items','By items…','X')}
+      </div>
+      ${panel}
+    </div>`;
+  }).join('');
+
+  // --- fees & tax ---
+  const feeInput = (label, path, val) => `<div class="feerow"><span>${label}</span>
+    <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(val).toFixed(2)}" onchange="A.editFee('${path}',this.value)"></div>`;
+  const otherFees = (t.fees.other || []).map((o, i) =>
+    feeInput(esc(o.label), 'other:' + i, o.amount)).join('');
+
+  // --- outputs ---
+  const rows = rowStrings(t);
+  const descLen = (t.description || '').length;
+
+  $('app').innerHTML = `
+    <div class="topbar">
+      <div class="side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">←</button>
+        <div><h1 style="font-size:19px;">${esc(t.store)}</h1><div class="small muted">${esc(t.dateStr)} · ${t.items.length} items</div></div>
+      </div>
+      <button class="iconbtn" onclick="A.deleteTrip('${t.id}')" aria-label="Delete trip">🗑</button>
+    </div>
+    ${banner}
+
+    <div class="card desc-wrap">
+      <label class="flabel" style="margin-top:0;">Sheet description (max 23 chars) — pasted next to both values</label>
+      <input class="in" id="descInput" maxlength="23" value="${esc(t.description)}" oninput="A.descChanged(this.value)">
+      <div class="counter ${descLen>23?'over':''}" id="descCount">${descLen}/23</div>
+    </div>
+
+    <h2>Items — tap who it belongs to</h2>
+    ${itemsHtml || '<div class="card empty">No items — add one below.</div>'}
+    <button class="btn btn-ghost" onclick="A.addItem()">＋ Add item</button>
+
+    <h2>Discounts</h2>
+    ${promosHtml || '<div class="card small muted">No discounts on this order.</div>'}
+    <button class="btn btn-ghost" onclick="A.addPromo()">＋ Add discount</button>
+
+    <h2>Fees, tip &amp; tax</h2>
+    <div class="card">
+      ${feeInput('Service fee', 'service', t.fees.service)}
+      ${feeInput('Delivery', 'delivery', t.fees.delivery)}
+      ${feeInput('Tip', 'tip', t.fees.tip)}
+      ${otherFees}
+      ${feeInput('Sales tax', 'tax', t.tax)}
+      ${feeInput('Receipt total', 'total', t.total)}
+      <div class="small muted" style="margin-top:8px;">Fees &amp; tip are split in proportion to each person's items. Tax follows the taxable items only.</div>
+    </div>
+
+    <h2 id="outputs">Copy into your sheet</h2>
+    <div class="card">
+      <div class="outrow">
+        <span class="dot dot-SH"></span>
+        <div class="grow"><div style="font-weight:700;">Shared &nbsp;<span class="money">${money(r.totals.SH)}</span></div>
+          <div class="small muted outdesc">${esc(t.description)}</div></div>
+        <button class="copybtn copy-SH" onclick="A.copyRow('shared')">⧉ A:B</button>
+      </div>
+      <div class="outrow">
+        <span class="dot dot-S"></span>
+        <div class="grow"><div style="font-weight:700;">Steph &nbsp;<span class="money">${money(r.totals.S)}</span></div>
+          <div class="small muted outdesc">${esc(t.description)}</div></div>
+        <button class="copybtn copy-S" onclick="A.copyRow('steph')">⧉ C:D</button>
+      </div>
+      <div class="outrow">
+        <div class="grow"><div style="font-weight:700;">Full row</div>
+          <div class="small muted">Shared + Steph, values &amp; descriptions — one paste fills A→D</div></div>
+        <button class="copybtn copy-full" onclick="A.copyRow('fullRow')">⧉ Copy A→D</button>
+      </div>
+      <div class="sumline" style="margin-top:10px;"><span class="muted">Collin (stays on your card — not logged)</span>
+        <span class="money" style="color:var(--c);">${money(r.totals.C)}</span></div>
+      <div class="sumline"><span class="muted">All three together</span>
+        <span class="money">${money(r.totals.C + r.totals.S + r.totals.SH)}</span></div>
+      <details>
+        <summary>How these numbers were computed</summary>
+        <table class="bd">
+          <tr><th></th><th>Collin</th><th>Steph</th><th>Shared</th></tr>
+          <tr><td>Items</td><td>${money(r.detail.items.C)}</td><td>${money(r.detail.items.S)}</td><td>${money(r.detail.items.SH)}</td></tr>
+          <tr><td>Fees &amp; tip</td><td>${money(r.detail.fees.C)}</td><td>${money(r.detail.fees.S)}</td><td>${money(r.detail.fees.SH)}</td></tr>
+          <tr><td>Tax</td><td>${money(r.detail.tax.C)}</td><td>${money(r.detail.tax.S)}</td><td>${money(r.detail.tax.SH)}</td></tr>
+          <tr><td>Discounts</td><td>−${money(r.detail.promos.C)}</td><td>−${money(r.detail.promos.S)}</td><td>−${money(r.detail.promos.SH)}</td></tr>
+          <tr><td>Total</td><td>${money(r.totals.C)}</td><td>${money(r.totals.S)}</td><td>${money(r.totals.SH)}</td></tr>
+        </table>
+      </details>
+    </div>
+
+    <div class="stickybar"><div class="inner">
+      <div class="tots">
+        <span><span class="dot dot-C"></span>${money(r.totals.C)}</span>
+        <span><span class="dot dot-S"></span>${money(r.totals.S)}</span>
+        <span><span class="dot dot-SH"></span>${money(r.totals.SH)}</span>
+      </div>
+      <button class="btn btn-primary btn-sm" style="display:inline-block;width:auto;" onclick="document.getElementById('outputs').scrollIntoView({behavior:'smooth'})">Copy ↓</button>
+    </div></div>`;
+}
+
+function splitNote(it){
+  const q = Math.max(1, num(it.qty));
+  const assigned = num(it.split.C) + num(it.split.S) + num(it.split.SH);
+  if(assigned < q) return `${q - assigned} of ${q} unassigned — they stay with ${CAT_LABEL[it.assign]}.`;
+  if(assigned > q) return `Careful: ${assigned} assigned but quantity is ${q}.`;
+  return `All ${q} assigned.`;
+}
+
+function rerenderTrip(){ if(currentTripId) renderTrip(currentTripId); }
+
+// ---------- actions ----------
+const A = {
+  goHome(){ editItemId = editPromoId = null; renderHome(); },
+  goSettings(){ renderSettings(); },
+  goNew(){ pendingImages = []; renderNew(); },
+  openTrip(id){ editItemId = editPromoId = null; renderTrip(id); },
+
+  // settings
+  toggleKey(){ const i = $('apiKey'); i.type = i.type === 'password' ? 'text' : 'password'; },
+  saveSettings(){
+    settings.apiKey = $('apiKey').value.trim();
+    settings.model = $('model').value;
+    persist(); toast('Saved'); renderHome();
+  },
+  async testKey(){
+    const out = $('testResult');
+    const key = $('apiKey').value.trim();
+    const model = $('model').value;
+    if(!key){ out.textContent = 'Enter a key first'; return; }
+    out.textContent = 'Testing…';
+    try{
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-api-key':key,
+          'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({ model, max_tokens:1, messages:[{role:'user', content:'hi'}] })
+      });
+      const j = await r.json();
+      out.textContent = (j.type === 'error') ? ('✗ ' + (j.error?.message || 'error')) : '✓ Key works';
+    }catch(e){ out.textContent = '✗ Network error — check connection'; }
+  },
+
+  // new trip images
+  async addImages(files){
+    if(!files || !files.length) return;
+    try{
+      for(const f of Array.from(files)) pendingImages.push(await compressImage(f));
+    }catch(e){ toast('Could not read an image'); }
+    renderNew();
+  },
+  removeImage(i){ pendingImages.splice(i, 1); renderNew(); },
+
+  async parse(){
+    const btn = $('parseBtn'), st = $('parseStatus');
+    btn.disabled = true;
+    const msgs = ['Reading your screenshots…', 'Finding items and prices…', 'Checking fees, tip and tax…', 'Almost there…'];
+    let mi = 0;
+    st.innerHTML = `<div class="banner banner-info"><span class="spin"></span><span id="pmsg">${msgs[0]}</span></div>`;
+    const tick = setInterval(() => { mi = (mi+1) % msgs.length; const el = $('pmsg'); if(el) el.textContent = msgs[mi]; }, 4000);
+    try{
+      const parsed = await parseScreenshots(pendingImages);
+      clearInterval(tick);
+      const t = buildTrip(parsed);
+      trips.unshift(t); persist();
+      pendingImages = [];
+      renderTrip(t.id);
+      toast('Trip loaded — assign the items');
+    }catch(e){
+      clearInterval(tick);
+      btn.disabled = false;
+      st.innerHTML = `<div class="banner banner-err"><b>Couldn't read the screenshots.</b><br>${esc(e.message)}<br><span class="small">Check your API key in Settings, your connection, and try again.</span></div>`;
+    }
+  },
+
+  // trip-level
+  deleteTrip(id){
+    if(!confirm('Delete this trip? The Google Sheet is unaffected.')) return;
+    trips = trips.filter(t => t.id !== id); persist();
+    renderHome();
+  },
+  clearNotes(){ const t = tripById(currentTripId); if(t){ t.notes = ''; persist(); rerenderTrip(); } },
+  descChanged(v){
+    const t = tripById(currentTripId); if(!t) return;
+    t.description = v.slice(0, 23); persist();
+    const c = $('descCount'); if(c) c.textContent = t.description.length + '/23';
+    // update the output row descriptions in place (no re-render → keeps focus)
+    document.querySelectorAll('.outdesc').forEach(el => { el.textContent = t.description; });
+  },
+
+  // items
+  assign(itemId, cat){
+    const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === itemId); if(!it) return;
+    it.assign = cat; persist(); rerenderTrip();
+  },
+  toggleTax(itemId){
+    const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === itemId); if(!it) return;
+    it.taxable = !it.taxable; persist(); rerenderTrip();
+  },
+  startSplit(itemId){
+    const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === itemId); if(!it) return;
+    it.split = { C:0, S:0, SH:0 };
+    it.split[it.assign] = it.qty;
+    persist(); rerenderTrip();
+  },
+  stepSplit(itemId, cat, d){
+    const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === itemId); if(!it || !it.split) return;
+    const q = Math.max(1, num(it.qty));
+    const others = ['C','S','SH'].filter(c => c !== cat).reduce((a,c) => a + num(it.split[c]), 0);
+    it.split[cat] = Math.max(0, Math.min(q - others, num(it.split[cat]) + d));
+    persist(); rerenderTrip();
+  },
+  removeSplit(itemId){
+    const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === itemId); if(!it) return;
+    it.split = null; persist(); rerenderTrip();
+  },
+  startEditItem(id){ editItemId = id; editPromoId = null; rerenderTrip(); },
+  doneEditItem(){ editItemId = null; rerenderTrip(); },
+  editItem(id, field, val){
+    const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === id); if(!it) return;
+    if(field === 'name') it.name = val;
+    if(field === 'qty'){ it.qty = Math.max(1, Math.round(num(val) || 1)); it.split = null; }
+    if(field === 'lineTotal') it.lineTotal = round2(val);
+    persist();
+  },
+  deleteItem(id){
+    const t = tripById(currentTripId); if(!t) return;
+    t.items = t.items.filter(i => i.id !== id);
+    for(const p of t.promos) p.itemIds = (p.itemIds || []).filter(x => x !== id);
+    editItemId = null; persist(); rerenderTrip();
+  },
+  addItem(){
+    const t = tripById(currentTripId); if(!t) return;
+    const it = { id:uid(), name:'New item', qty:1, lineTotal:0, taxable:false, taxReason:'', assign:'C', split:null };
+    t.items.push(it); editItemId = it.id; persist(); rerenderTrip();
+  },
+
+  // promos
+  promoMode(pid, mode){
+    const t = tripById(currentTripId); const p = t && t.promos.find(x => x.id === pid); if(!p) return;
+    p.mode = mode; persist(); rerenderTrip();
+  },
+  promoSplit(pid, field, val){
+    const t = tripById(currentTripId); const p = t && t.promos.find(x => x.id === pid); if(!p) return;
+    p[field] = Math.max(0, round2(val)); persist(); rerenderTrip();
+  },
+  promoItemToggle(pid, itemId, on){
+    const t = tripById(currentTripId); const p = t && t.promos.find(x => x.id === pid); if(!p) return;
+    p.itemIds = p.itemIds || [];
+    if(on && !p.itemIds.includes(itemId)) p.itemIds.push(itemId);
+    if(!on) p.itemIds = p.itemIds.filter(x => x !== itemId);
+    persist(); rerenderTrip();
+  },
+  startEditPromo(id){ editPromoId = id; editItemId = null; rerenderTrip(); },
+  doneEditPromo(){ editPromoId = null; rerenderTrip(); },
+  editPromo(id, field, val){
+    const t = tripById(currentTripId); const p = t && t.promos.find(x => x.id === id); if(!p) return;
+    if(field === 'label') p.label = val;
+    if(field === 'amount') p.amount = Math.abs(round2(val));
+    persist();
+  },
+  deletePromo(id){
+    const t = tripById(currentTripId); if(!t) return;
+    t.promos = t.promos.filter(p => p.id !== id);
+    editPromoId = null; persist(); rerenderTrip();
+  },
+  addPromo(){
+    const t = tripById(currentTripId); if(!t) return;
+    const p = { id:uid(), label:'Discount', amount:0, mode:'C', splitS:0, splitSH:0, itemIds:[] };
+    t.promos.push(p); editPromoId = p.id; persist(); rerenderTrip();
+  },
+
+  // fees
+  editFee(path, val){
+    const t = tripById(currentTripId); if(!t) return;
+    const v = round2(val);
+    if(path === 'tax'){ t.tax = v; }
+    else if(path === 'total'){ t.total = v; }
+    else if(path.startsWith('other:')){ const i = parseInt(path.slice(6), 10); if(t.fees.other[i]) t.fees.other[i].amount = v; }
+    else t.fees[path] = v;
+    persist(); rerenderTrip();
+  },
+
+  // outputs
+  copyRow(kind){
+    const t = tripById(currentTripId); if(!t) return;
+    const rows = rowStrings(t);
+    const labels = { shared:'Shared row copied — paste in col A', steph:'Steph row copied — paste in col C', fullRow:'Full row copied — paste in col A' };
+    copyText(rows[kind], labels[kind]);
+  }
+};
+window.A = A;
+
+// test hooks (used during development; harmless in production)
+window.GT = {
+  get trips(){ return trips; },
+  get settings(){ return settings; },
+  computeTotals, rowStrings, buildTrip,
+  addTrip(parsed){ const t = buildTrip(parsed); trips.unshift(t); persist(); renderTrip(t.id); return t.id; }
+};
+
+renderHome();
+</script>
+</body>
+</html>
