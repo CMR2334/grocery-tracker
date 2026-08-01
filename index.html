@@ -204,7 +204,7 @@ const IC = {
   gear:  _sv('<path d="M4 7h9"/><path d="M17 7h3"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/>'),
   plus:  _sv('<path d="M12 5v14"/><path d="M5 12h14"/>'),
   back:  _sv('<path d="M14.5 5.5 8 12l6.5 6.5"/>'),
-  trash: _sv('<path d="M5 7h14"/><path d="M10 7V5.4A1.4 1.4 0 0 1 11.4 4h1.2A1.4 1.4 0 0 1 14 5.4V7"/><path d="m8.4 7 .6 12.2h6L15.6 7"/>'),
+  trash: _sv('<path d="M5 7h14"/><path d="M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M7 7l1 12h8l1-12"/><path d="M10.5 10.5v5"/><path d="M13.5 10.5v5"/>'),
   copy:  _sv('<rect x="8.6" y="8.6" width="10.4" height="10.4" rx="2.4"/><path d="M15.4 5.4V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6.4a2 2 0 0 0 2 2h.4"/>'),
   image: _sv('<rect x="4" y="5" width="16" height="14" rx="2.6"/><circle cx="9.2" cy="10" r="1.7"/><path d="m5.5 16.5 4-4 3 3 2.8-2.8 3.2 3.2"/>'),
   eye:   _sv('<path d="M3.5 12S6.8 6.2 12 6.2 20.5 12 20.5 12 17.2 17.8 12 17.8 3.5 12 3.5 12Z"/><circle cx="12" cy="12" r="2.6"/>'),
@@ -236,7 +236,7 @@ async function copyText(str, okMsg){
 }
 
 // ---------- state ----------
-const CATS = [ {k:'C', label:'Collin'}, {k:'S', label:'Steph'}, {k:'SH', label:'Shared'} ];
+const CATS = [ {k:'C', label:'Collin'}, {k:'SH', label:'Shared'}, {k:'S', label:'Steph'} ];
 const CAT_LABEL = {C:'Collin', S:'Steph', SH:'Shared'};
 
 function load(key, fallback){
@@ -702,10 +702,10 @@ function renderTrip(id){
     if(p.mode === 'split'){
       const rem = Math.max(0, num(p.amount) - num(p.splitS) - num(p.splitSH));
       panel = `<div class="splitpanel">
-        <div class="row" style="margin-bottom:8px;"><span style="font-size:13.5px;font-weight:600;"><span class="dot dot-S"></span> Steph gets</span>
-          <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.splitS).toFixed(2)}" onchange="A.promoSplit('${p.id}','splitS',this.value)"></div>
         <div class="row" style="margin-bottom:8px;"><span style="font-size:13.5px;font-weight:600;"><span class="dot dot-SH"></span> Shared gets</span>
           <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.splitSH).toFixed(2)}" onchange="A.promoSplit('${p.id}','splitSH',this.value)"></div>
+        <div class="row" style="margin-bottom:8px;"><span style="font-size:13.5px;font-weight:600;"><span class="dot dot-S"></span> Steph gets</span>
+          <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.splitS).toFixed(2)}" onchange="A.promoSplit('${p.id}','splitS',this.value)"></div>
         <div class="small muted">Remaining ${moneyN(rem)} goes to Collin.</div>
       </div>`;
     }else if(p.mode === 'items'){
@@ -732,7 +732,7 @@ function renderTrip(id){
     return `<div class="card">
       ${head}
       <div class="modes">
-        ${modeBtn('C','Collin','C')}${modeBtn('S','Steph','S')}${modeBtn('SH','Shared','SH')}
+        ${modeBtn('C','Collin','C')}${modeBtn('SH','Shared','SH')}${modeBtn('S','Steph','S')}
         ${modeBtn('split','Split amount','X')}${modeBtn('items','By item','X')}
       </div>
       ${panel}
