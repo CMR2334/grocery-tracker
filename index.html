@@ -455,7 +455,7 @@ function buildTrip(p){
   const today = new Date();
   const dateStr = (p.date && p.date.trim()) ? p.date.trim() : `${today.getMonth()+1}/${today.getDate()}`;
   const store = (p.store || 'Store').trim();
-  let desc = `${store} ${dateStr}`;
+  let desc = store;
   if(desc.length > 23) desc = desc.slice(0, 23).trim();
   return {
     id: uid(), createdAt: Date.now(), store, dateStr, description: desc,
