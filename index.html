@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1c1a17" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1a19" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Grocery $ Tracker Helper</title>
 <style>
   :root{
-    --bg:#f5f1ea; --card:#fbf9f5; --ink:#34312d; --muted:#69635b; --line:#ded8ce;
-    --primary:#5a5147; --primary-ink:#fbf9f5;
+    --bg:#f5f3ee; --card:#faf8f4; --ink:#373733; --muted:#696862; --line:#deded7;
+    --title:#403e39; --primary:#6b6962; --primary-ink:#faf8f4;
     --c:#2563eb; --c-bg:#eaf0fe;
     --s:#7c3aed; --s-bg:#f1eafe;
     --sh:#0f9d8f; --sh-bg:#e4f5f3;
@@ -22,8 +22,8 @@
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#1c1a17; --card:#25221e; --ink:#e9e4dc; --muted:#aaa298; --line:#3b3731;
-      --primary:#c3b5a3; --primary-ink:#29251f;
+      --bg:#1a1a19; --card:#242423; --ink:#e7e6e0; --muted:#aaa9a2; --line:#3a3a37;
+      --title:#efe9df; --primary:#b9b8b0; --primary-ink:#20201e;
       --c:#6a96f5; --c-bg:#1c2740;
       --s:#a98af0; --s-bg:#2a2140;
       --sh:#3fc0b2; --sh-bg:#12332f;
@@ -39,7 +39,10 @@
   #app{max-width:540px; margin:0 auto; padding:14px 16px 110px;
     padding-top:max(14px, env(safe-area-inset-top));
     padding-left:max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right));}
-  h1{font-size:22px; margin:0; letter-spacing:-.02em;}
+  h1{font-size:22px; margin:0; letter-spacing:-.02em; color:var(--title);}
+  .home-title{display:flex; align-items:center; gap:8px; min-width:0;}
+  #appIconSlot{width:26px; height:26px; flex:none;}
+  .home-title h1{font-family:Georgia,"Times New Roman",serif; font-weight:600; letter-spacing:-.015em;}
   h2{font-size:12px; margin:26px 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-weight:600;}
   .ic{width:18px; height:18px; flex:none;}
   .iconbtn .ic{width:19px; height:19px;}
@@ -72,8 +75,13 @@
   .in{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:11px;
     font-size:16px; background:var(--bg); color:var(--ink); font-family:inherit;}
   .in:focus{outline:2px solid var(--c); outline-offset:0;}
-  .in-money{width:96px; text-align:right; padding:8px 10px;}
+  input[type="number"]{-moz-appearance:textfield;}
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none; margin:0;}
+  .in-money{width:96px; text-align:center; padding:8px 10px;}
   .in-qty{width:64px; text-align:center; padding:8px 6px;}
+  .money-input{display:inline-flex; align-items:center; gap:5px; flex:none;}
+  .money-prefix{color:var(--muted); font-size:13px;}
   label.flabel{display:block; font-size:12.5px; color:var(--muted); font-weight:600; margin:12px 0 5px;}
 
   /* segmented control */
@@ -101,6 +109,9 @@
   .banner-info{background:var(--c-bg); color:var(--c);}
 
   .itemname{font-weight:600; font-size:14.5px; line-height:1.35; overflow-wrap:anywhere;}
+  .itemhead{display:flex; align-items:flex-start; gap:10px;}
+  .itemhead .itemname{flex:1; min-width:0; overflow-wrap:break-word; word-break:normal;}
+  .itemhead .money{flex-shrink:0; align-self:flex-start; white-space:nowrap;}
   .itemcard .seg{margin-top:10px;}
   .itemtools{display:flex; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap;}
   .linklike{background:none; border:none; color:var(--c); font-weight:600; font-size:13px; cursor:pointer;
@@ -190,7 +201,7 @@
   .stickybar{position:fixed; left:0; right:0; bottom:0; border-top:1px solid var(--line);
     background:color-mix(in srgb, var(--card) 88%, transparent); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
     padding:10px 16px calc(10px + env(safe-area-inset-bottom)); z-index:30;}
-  .stickybar .inner{max-width:540px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .stickybar .inner{max-width:540px; margin:0 auto; display:flex; align-items:center; justify-content:flex-start; gap:8px;}
   .stickybar .tots{display:flex; gap:11px; font-size:13px; font-weight:600; flex-wrap:wrap;}
   .stickybar .tots span{display:inline-flex; align-items:center; gap:5px;}
 
@@ -233,6 +244,8 @@ const uid = () => 'x' + Date.now().toString(36) + (_idc++).toString(36) + Math.r
 const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
 const round2 = v => Math.round(num(v) * 100) / 100;
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// keep parenthetical suffixes like "(4 oz)" on one line when names wrap
+const escName = s => esc(s).replace(/\(([^)]*)\)/g, m => m.replace(/ /g, '\u00a0'));
 const money = cents => (cents < 0 ? '-' : '') + '$' + (Math.abs(cents)/100).toFixed(2);
 const moneyN = n => money(Math.round(n*100));
 
@@ -660,7 +673,7 @@ function renderHome(){
 
   $('app').innerHTML = `
     <div class="topbar">
-      <h1>Grocery $ Tracker</h1>
+      <div class="home-title"><span id="appIconSlot" aria-hidden="true"></span><h1>Grocery $ Tracker</h1></div>
       <div class="side"><button class="iconbtn" onclick="A.goSettings()" aria-label="Settings">${IC.gear}</button></div>
     </div>
     ${settings.apiKey ? '' : `<div class="banner banner-info">Add your Anthropic API key in <b>Settings</b> before your first trip.</div>`}
@@ -763,7 +776,7 @@ function renderTrip(id){
           <div><label class="flabel" style="margin:0 0 5px;">Qty</label>
             <input class="in in-qty" type="number" min="1" step="1" value="${it.qty}" onchange="A.editItem('${it.id}','qty',this.value)"></div>
           <div><label class="flabel" style="margin:0 0 5px;">Price</label>
-            <input class="in in-money" type="text" inputmode="numeric" value="${num(it.lineTotal).toFixed(2)}" data-item-price="${it.id}" onfocus="A.priceFocus(this)" oninput="A.priceInput(this,event)" onblur="A.priceBlur(this)"></div>
+            <span class="money-input"><span class="money-prefix" aria-hidden="true">$</span><input class="in in-money" type="text" inputmode="numeric" value="${num(it.lineTotal).toFixed(2)}" data-item-price="${it.id}" onfocus="A.priceFocus(this)" oninput="A.priceInput(this,event)" onblur="A.priceBlur(this)"></span></div>
           <div class="grow"></div>
           <button class="linklike danger" onclick="A.deleteItem('${it.id}')">Delete</button>
           <button class="btn btn-ghost btn-sm" onclick="A.doneEditItem()">Done</button>
@@ -782,8 +795,8 @@ function renderTrip(id){
         <button class="linklike" onclick="A.removeSplit('${it.id}')">Remove split</button>
       </div>` : '';
     return `<div class="card itemcard">
-      <div class="row">
-        <div class="itemname grow">${esc(it.name)} ${it.qty > 1 ? `<span class="qtybadge">×${it.qty}</span>` : ''}</div>
+      <div class="itemhead">
+        <div class="itemname">${escName(it.name)} ${it.qty > 1 ? `<span class="qtybadge">×${it.qty}</span>` : ''}</div>
         <div class="money">${moneyN(it.lineTotal)}</div>
       </div>
       ${catSeg(it.assign, `A.assign('${it.id}','%K')`)}
@@ -844,7 +857,7 @@ function renderTrip(id){
 
   // --- fees & tax ---
   const feeInput = (label, path, val) => `<div class="feerow"><span>${label}</span>
-    <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(val).toFixed(2)}" onchange="A.editFee('${path}',this.value)"></div>`;
+    <span class="money-input"><span class="money-prefix" aria-hidden="true">$</span><input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(val).toFixed(2)}" onchange="A.editFee('${path}',this.value)"></span></div>`;
   const otherFees = (t.fees.other || []).map((o, i) =>
     feeInput(esc(o.label), 'other:' + i, o.amount)).join('');
 
@@ -935,7 +948,6 @@ function renderTrip(id){
         <span><span class="dot dot-S"></span>${money(r.totals.S)}</span>
         <span><span class="dot dot-SH"></span>${money(r.totals.SH)}</span>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="document.getElementById('outputs').scrollIntoView({behavior:'smooth'})">Copy</button>
     </div></div>`;
 }
 
