@@ -11,28 +11,31 @@ Single-file, mobile-first web app (`index.html`, no build step, no dependencies)
 ## Architecture
 - Screenshot parsing: browser → Anthropic Messages API directly (`anthropic-dangerous-direct-browser-access` header), BYOK — the user enters an API key in ⚙️ Settings; stored in localStorage only. Structured outputs (`output_config.format` json_schema) guarantee parseable JSON. Default model `claude-opus-5`, option `claude-haiku-4-5`.
 - The AI only extracts (items, qty, line totals, fees, tip, tax, promos, WI taxability guesses). **All split math is deterministic in-app** (`computeTotals`): fees/tip proportional to each person's pre-tax items; the receipt's actual tax spread across taxable items; promos default to Collin with redirect / split-amount / by-item modes; qty splits with remainder-to-primary; penny drift pinned so category totals always equal the computed total.
-- Sheet contract: copy strings are tab-separated — Shared value+desc → cols A:B, Steph → C:D, "Full row" fills A→D in one paste. `$`-prefixed values; description ≤23 chars, defaults to **store name only (no date)**, editable.
-- Trips persist in localStorage (`gt_trips`, `gt_settings`); test hooks on `window.GT` (buildTrip, computeTotals, rowStrings, addTrip).
+- Sheet contract: copy strings are tab-separated — Shared value+desc → cols A:B, Steph → C:D, "Full row" fills A→D in one paste. `$`-prefixed values; description ≤23 chars, defaults to **store name only (no date)**, editable. The contract is unchanged.
+- Trips persist in localStorage (`gt_trips`, `gt_settings`); parsed screenshot previews are held in session memory keyed by trip id, not localStorage. Test hooks remain on `window.GT` (`buildTrip`, `computeTotals`, `rowStrings`, `addTrip`).
 
 ## State as of this update
-- Deployed and verified: served file byte-identical to commit `8637cbd`.
-- Design refinement pass done: emoji removed in favor of inline stroke SVG icons (`IC` map in the script), quieter copy, hairline borders, ink primary buttons, tinted capsule copy-buttons, 600-weight typography.
-- iPhone 16 Pro pass done: 402×874 verified, safe-area top/bottom, ≥44px touch targets everywhere, no horizontal overflow, light+dark themes.
-- Math verified against a real Aldi/Instacart order ($25.02 subtotal, $2.99 service, $5 tip, −$10 promo → $23.01) through assignment, qty-split, and promo-redirect scenarios.
-- **Not yet verified:** live parsing with a real API key (blocked on the user entering their key on the live site).
+- Today's run (`2026-08-01-grocery-tracker-next-steps`) completed in commits `498e01b`, `a89a271`, `94146dd`, `db5b406`, and `2d4a83e`. Live-browser verification passed, including `GT.rowStrings` byte-match against the pre-run baseline; the sheet contract is unchanged.
+- Person selectors are ordered **Collin / Shared / Steph** everywhere: the `CATS` array, promo-mode buttons, and promo split rows. The trash action uses a cleaner outline icon.
+- The whole New Trip screen accepts dragged screenshots. It uses a depth-counter highlight, filters to image MIME types with a toast for rejected files, and recovers on `window` `dragend`. A module `parsing` flag blocks adding/removing images and re-firing Analyze while a parse is running, closing the double-API-charge race.
+- The item price editor is labeled **Price** and uses cents-first digit-buffer entry (`1234` → `$12.34`). Focus clears the field; empty blur restores the prior value; the buffer is re-derived from field text so select-all/retype, paste, and autofill work; input is capped at seven digits; explicit `0` commits `$0.00`.
+- Screenshot lightbox is complete: scrim/X dismiss, iOS-safe body scroll lock, and safe-area handling. After parsing, screenshots persist in session memory by trip id and appear as a 52px tappable strip on the trip screen. They are deliberately not stored in localStorage, so the strip disappears after reload for quota safety.
+- Theme refinement is complete: warm linen light (`#f5f1ea`), warm charcoal dark (`#1c1a17`), soft taupe `--primary` instead of stark ink-block buttons, desaturated status colors, and synchronized `meta` theme-color. All computed color combinations pass WCAG AA+; person colors are unchanged.
+- Delivered analyses are recorded in the run checkpoint; decisions remain with Collin:
+  - Per-item model bounding-box icons are estimated at ~27% more cost per parse; **NO-GO recommended** because receipt bbox accuracy is risky. Local category icons are the suggested alternative.
+  - Store logos add $0 API cost; **GO recommended** using an inline SVG map with alias normalization, with an estimated ~30–120KB weight consideration. Not implemented.
+  - `=SPLIT` paste research is complete, but whether a grid paste evaluates a formula on iOS is unconfirmed. An 8-step on-device test checklist exists; an HTML-clipboard route may be better because it pastes values, not formulas. No format change was made; the spec remains locked.
+- **Not yet verified:** live parsing with a real API key (the user still needs to enter one on the live site).
 
 ## Environment notes
-- `codex exec --sandbox workspace-write` **hangs indefinitely** when run against this folder path (the `$`/`:`/spaces in `Tools:Web Apps/Grocery $ Tracker Helper`); read-only mode works. For orchestrated runs, either rename the folder or route execution to Claude tiers.
-- Orchestrator run checkpoint (steps, reviews, decisions): `/Users/collinrekowski/Automation/.claude/orchestrator/runs/2026-08-01-grocery-tracker-mobile-polish.md`.
-- Session auto-memory holds the locked spec and constraints; it loads automatically in new sessions.
+- The `codex exec` hang was reproduced and root-caused to STDIN, not the path: startup blocks when inherited stdin is an open non-TTY pipe. Always append `< /dev/null` (or detach stdin); with that, `workspace-write` works fine against this folder (`codex 1.0.4`).
+- Orchestrator run checkpoint (steps, reviews, decisions): `/Users/collinrekowski/Automation/.claude/orchestrator/runs/2026-08-01-grocery-tracker-next-steps.md`.
 
-## Next steps (user's list, verbatim — 2026-08-01)
-1. Put "Shared" in the middle, and "Steph" selector on the right.
-2. Allow for drag and drop of screenshots/images into tool vs having to click to select only.
-3. Determine the cost increase that would result if symmetrical square icons of each item were clipped and placed to the left of each item description where they're designated.
-4. Determine the cost increase if store logos were used at the top.
-5. Set the manual input of Line price to automatically input the period and overwrite what exists upon entry, not adding to it. If 4 digits are typed it would be a 2 digit whole dollar price and 2 digit cents, if 5 digits then 3 digit whole dollar price and 2 digit cents, etc. Also change to "Price", removing "Line".
-6. Use a less weird looking garbage can icon.
-7. Determine if the "=SPLIT(..." formula can be embedded into what's copied, or whatever is necessary to allow for automatic splitting of the inputs to their respective adjacent cells on mobile, being that the split function isn't natively embedded into the mobile version of Sheets.
-8. The button colors for "Collin", etc. are good but revamp the overall theme colors to be less AI-typical and a little lighter, with less intense colors used.
-9. If possible to have the images show as small clickable and expandable icons after uploading to re-reference within-app that would be a good addition.
+## Next steps
+Candidate next steps raised by Collin on 2026-08-01; none is decided yet:
+
+1. Validate an optional second parse provider using an OpenAI key and GPT-5.6 Luna (max reasoning). Browser CORS and structured outputs make it feasible in principle, and the estimated cost is ~20–25× lower than Opus 5; a side-by-side accuracy test on real screenshots is still needed.
+2. Decide whether to add cross-device desktop↔phone trip sync. Trips are per-browser localStorage today; the recommended fit for the single-file/no-backend architecture is BYOK GitHub Gist sync, with Cloudflare Worker+KV as the alternative.
+3. If approved, implement the inline-SVG store-logo map and alias normalization.
+4. Run the on-device `=SPLIT` checklist if mobile formula paste remains important; keep the current sheet format locked unless the test supports a change.
+5. Complete live parsing verification with a real API key.
