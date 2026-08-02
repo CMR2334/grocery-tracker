@@ -672,8 +672,8 @@ function renderTrip(id){
         <div class="row" style="margin-top:10px;">
           <div><label class="flabel" style="margin:0 0 5px;">Qty</label>
             <input class="in in-qty" type="number" min="1" step="1" value="${it.qty}" onchange="A.editItem('${it.id}','qty',this.value)"></div>
-          <div><label class="flabel" style="margin:0 0 5px;">Line price</label>
-            <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(it.lineTotal).toFixed(2)}" onchange="A.editItem('${it.id}','lineTotal',this.value)"></div>
+          <div><label class="flabel" style="margin:0 0 5px;">Price</label>
+            <input class="in in-money" type="text" inputmode="numeric" value="${num(it.lineTotal).toFixed(2)}" data-item-price="${it.id}" onfocus="A.priceFocus(this)" oninput="A.priceInput(this,event)" onblur="A.priceBlur(this)"></div>
           <div class="grow"></div>
           <button class="linklike danger" onclick="A.deleteItem('${it.id}')">Delete</button>
           <button class="btn btn-ghost btn-sm" onclick="A.doneEditItem()">Done</button>
@@ -855,10 +855,10 @@ function rerenderTrip(){ if(currentTripId) renderTrip(currentTripId); }
 
 // ---------- actions ----------
 const A = {
-  goHome(){ editItemId = editPromoId = null; renderHome(); },
+  goHome(){ this.commitOpenItemPrice(); editItemId = editPromoId = null; renderHome(); },
   goSettings(){ renderSettings(); },
   goNew(){ pendingImages = []; renderNew(); },
-  openTrip(id){ editItemId = editPromoId = null; renderTrip(id); },
+  openTrip(id){ this.commitOpenItemPrice(); editItemId = editPromoId = null; renderTrip(id); },
 
   // settings
   toggleKey(){ const i = $('apiKey'); i.type = i.type === 'password' ? 'text' : 'password'; },
@@ -994,8 +994,48 @@ const A = {
     const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === itemId); if(!it) return;
     it.split = null; persist(); rerenderTrip();
   },
-  startEditItem(id){ editItemId = id; editPromoId = null; rerenderTrip(); },
-  doneEditItem(){ editItemId = null; rerenderTrip(); },
+  startEditItem(id){ this.commitOpenItemPrice(); editItemId = id; editPromoId = null; rerenderTrip(); },
+  doneEditItem(){ this.commitOpenItemPrice(); editItemId = null; rerenderTrip(); },
+  priceFocus(el){
+    el.dataset.priceOriginal = el.value;
+    el.dataset.priceDigits = '';
+    el.dataset.priceTyped = '0';
+    el.value = '';
+  },
+  priceInput(el){
+    const digits = el.value.replace(/\D/g, '').slice(0, 7);
+    el.dataset.priceDigits = digits;
+    el.dataset.priceTyped = '1';
+    el.value = digits ? (parseInt(digits, 10) / 100).toFixed(2) : '';
+  },
+  commitItemPrice(el){
+    if(!el) return false;
+    if(el.dataset.priceTyped !== '1'){
+      el.value = el.dataset.priceOriginal || el.value;
+      return false;
+    }
+    const digits = el.dataset.priceDigits || '';
+    if(!digits){
+      el.value = el.dataset.priceOriginal || el.value;
+      el.dataset.priceTyped = '0';
+      return false;
+    }
+    const cents = parseInt(digits, 10);
+    this.editItem(el.dataset.itemPrice, 'lineTotal', cents / 100);
+    el.value = (cents / 100).toFixed(2);
+    el.dataset.priceOriginal = el.value;
+    el.dataset.priceTyped = '0';
+    return true;
+  },
+  commitOpenItemPrice(){
+    return this.commitItemPrice(document.querySelector('[data-item-price]'));
+  },
+  priceBlur(el){
+    const committed = this.commitItemPrice(el);
+    if(committed) setTimeout(() => {
+      if(currentTripId && editItemId === el.dataset.itemPrice) rerenderTrip();
+    }, 0);
+  },
   editItem(id, field, val){
     const t = tripById(currentTripId); const it = t && t.items.find(i => i.id === id); if(!it) return;
     if(field === 'name') it.name = val;
@@ -1012,6 +1052,7 @@ const A = {
   addItem(){
     const t = tripById(currentTripId); if(!t) return;
     const it = { id:uid(), name:'New item', qty:1, lineTotal:0, taxable:false, taxReason:'', assign:'C', split:null };
+    this.commitOpenItemPrice();
     t.items.push(it); editItemId = it.id; persist(); rerenderTrip();
   },
 
@@ -1031,7 +1072,7 @@ const A = {
     if(!on) p.itemIds = p.itemIds.filter(x => x !== itemId);
     persist(); rerenderTrip();
   },
-  startEditPromo(id){ editPromoId = id; editItemId = null; rerenderTrip(); },
+  startEditPromo(id){ this.commitOpenItemPrice(); editPromoId = id; editItemId = null; rerenderTrip(); },
   doneEditPromo(){ editPromoId = null; rerenderTrip(); },
   editPromo(id, field, val){
     const t = tripById(currentTripId); const p = t && t.promos.find(x => x.id === id); if(!p) return;
