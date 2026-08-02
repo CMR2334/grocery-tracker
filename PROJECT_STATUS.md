@@ -32,9 +32,13 @@ Single-file, mobile-first web app (`index.html`, no build step, no dependencies)
 - The `codex exec` hang was reproduced and root-caused to STDIN, not the path: startup blocks when inherited stdin is an open non-TTY pipe. Always append `< /dev/null` (or detach stdin); with that, `workspace-write` works fine against this folder (`codex 1.0.4`).
 - Orchestrator run checkpoint (steps, reviews, decisions): `/Users/collinrekowski/Automation/.claude/orchestrator/runs/2026-08-01-grocery-tracker-next-steps.md`.
 
+- Cross-device sync is BUILT and awaiting Collin's Cloudflare setup: `cloudflare/worker.js` (R2-backed Worker: trips JSON with tombstone merge, screenshots, public logos) + click-by-click `cloudflare/SYNC_SETUP.md`. App side: Sync URL/token fields in Settings; newer-updatedAt-wins merge with tombstones; pull-before-push; edit-safe deferred re-render; screenshot upload + lazy cross-device fetch; remote real-logo loading (public `/logos/<id>.png`) with inline-SVG fallback. With sync unconfigured the app makes zero non-Anthropic network calls, as before.
+- 2026-08-01 late pass: app icon (icon.svg + apple-touch-icon.png, receipt/$/split-dots mark) wired to head + home title; title font is REAL embedded Fraunces (19KB OFL subset, data URI — no runtime font fetch); fee/tax inputs centered with $ prefixes and hidden spinners; sticky-bar Copy button removed (per-section copies remain); item names wrap whole-parenthetical to line 2 clear of the price; palette shifted from brown-linen to cleaner beige (contrast re-verified AA+).
+- Native tab-separated paste now WORKS on mobile Sheets (Collin confirmed on-device) — the =SPLIT idea is dropped entirely.
+
 ## Next steps
 Candidate next steps raised by Collin on 2026-08-01; none is decided yet:
 
 1. (Parked by Collin 2026-08-01: "can keep API as Anthropic for now.") Optional second parse provider using an OpenAI key and GPT-5.6 Luna (max reasoning) — feasible in principle (browser CORS, structured outputs), ~20–25× cheaper than Opus 5; would need a side-by-side accuracy test on real screenshots.
-2. Decide whether to add cross-device desktop↔phone trip sync. Trips are per-browser localStorage today; the recommended fit for the single-file/no-backend architecture is BYOK GitHub Gist sync, with Cloudflare Worker+KV as the alternative.
+2. Collin (tomorrow): run cloudflare/SYNC_SETUP.md — create R2 bucket + Worker, set SYNC_TOKEN, upload real store logos to logos/ (aldi.png, woodmans.png, picknsave.png, walmart.png, target.png, costco.png, instacart.png), then paste Worker URL + token into the app's Settings on BOTH devices.
 4. `=SPLIT` on-device test PASSED (Collin, 2026-08-01: formula evaluates on both direct grid paste and fx-bar paste on iOS). Before building an optional split-copy toggle, still confirm pasted values sum correctly (text vs number) and that formula-in-cell residue is acceptable; default copy format stays locked.
