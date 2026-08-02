@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a1a19" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Grocery $ Tracker Helper</title>
 <style>
@@ -673,7 +675,7 @@ function renderHome(){
 
   $('app').innerHTML = `
     <div class="topbar">
-      <div class="home-title"><span id="appIconSlot" aria-hidden="true"></span><h1>Grocery $ Tracker</h1></div>
+      <div class="home-title"><span id="appIconSlot" aria-hidden="true"><img src="icon.svg" alt="" style="width:26px;height:26px;border-radius:7px;display:block;"></span><h1>Grocery $ Tracker</h1></div>
       <div class="side"><button class="iconbtn" onclick="A.goSettings()" aria-label="Settings">${IC.gear}</button></div>
     </div>
     ${settings.apiKey ? '' : `<div class="banner banner-info">Add your Anthropic API key in <b>Settings</b> before your first trip.</div>`}
