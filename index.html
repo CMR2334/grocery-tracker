@@ -3,31 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1a17" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Grocery $ Tracker Helper</title>
 <style>
   :root{
-    --bg:#f6f6f4; --card:#ffffff; --ink:#1a1c20; --muted:#6b7280; --line:#e6e6e1;
+    --bg:#f5f1ea; --card:#fbf9f5; --ink:#34312d; --muted:#69635b; --line:#ded8ce;
+    --primary:#5a5147; --primary-ink:#fbf9f5;
     --c:#2563eb; --c-bg:#eaf0fe;
     --s:#7c3aed; --s-bg:#f1eafe;
     --sh:#0f9d8f; --sh-bg:#e4f5f3;
-    --green:#15803d; --green-bg:#e8f5ec;
-    --amber:#b45309; --amber-bg:#fdf3e3;
-    --red:#b91c1c; --red-bg:#fdecec;
+    --green:#4d7055; --green-bg:#e8f0e8;
+    --amber:#806035; --amber-bg:#f3ebdc;
+    --red:#92534f; --red-bg:#f5e7e4;
     --radius:14px;
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#101214; --card:#1b1e22; --ink:#ececec; --muted:#9aa0a6; --line:#2b2f34;
+      --bg:#1c1a17; --card:#25221e; --ink:#e9e4dc; --muted:#aaa298; --line:#3b3731;
+      --primary:#c3b5a3; --primary-ink:#29251f;
       --c:#6a96f5; --c-bg:#1c2740;
       --s:#a98af0; --s-bg:#2a2140;
       --sh:#3fc0b2; --sh-bg:#12332f;
-      --green:#4fc073; --green-bg:#15301e;
-      --amber:#e0a34c; --amber-bg:#3a2c14;
-      --red:#e57373; --red-bg:#3a1a1a;
+      --green:#86aa8b; --green-bg:#243228;
+      --amber:#c2a16d; --amber-bg:#352e22;
+      --red:#c98b84; --red-bg:#392725;
     }
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -50,7 +52,7 @@
     min-height:44px; display:inline-flex; align-items:center; justify-content:center;}
   .btn{display:flex; width:100%; align-items:center; justify-content:center; gap:7px; border:none; border-radius:13px; padding:15px;
     font-size:16px; font-weight:600; cursor:pointer; text-align:center; font-family:inherit;}
-  .btn-primary{background:var(--ink); color:var(--bg);}
+  .btn-primary{background:var(--primary); color:var(--primary-ink);}
   .btn-primary:disabled{opacity:.45;}
   .btn-ghost{background:var(--card); color:var(--ink); border:1px solid var(--line);}
   .btn-sm{display:inline-flex; width:auto; padding:9px 13px; font-size:13.5px; border-radius:10px;}
@@ -111,7 +113,7 @@
   .modes button.on-C{background:var(--c); border-color:var(--c); color:#fff;}
   .modes button.on-S{background:var(--s); border-color:var(--s); color:#fff;}
   .modes button.on-SH{background:var(--sh); border-color:var(--sh); color:#fff;}
-  .modes button.on-X{background:var(--ink); border-color:var(--ink); color:var(--bg);}
+  .modes button.on-X{background:var(--primary); border-color:var(--primary); color:var(--primary-ink);}
 
   .feerow{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:14.5px;}
   .feerow:last-child{border-bottom:none;}
@@ -123,7 +125,7 @@
     font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; font-family:inherit;}
   .copy-S{background:color-mix(in srgb, var(--s) 14%, transparent); color:var(--s);}
   .copy-SH{background:color-mix(in srgb, var(--sh) 14%, transparent); color:var(--sh);}
-  .copy-full{background:var(--ink); color:var(--bg);}
+  .copy-full{background:var(--primary); color:var(--primary-ink);}
 
   .sumline{display:flex; justify-content:space-between; font-size:14px; padding:4px 0;}
   details{margin-top:6px;}
@@ -184,7 +186,7 @@
   .stickybar .tots{display:flex; gap:11px; font-size:13px; font-weight:600; flex-wrap:wrap;}
   .stickybar .tots span{display:inline-flex; align-items:center; gap:5px;}
 
-  #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:96px; background:var(--ink); color:var(--bg);
+  #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:96px; background:var(--primary); color:var(--primary-ink);
     padding:10px 18px; border-radius:999px; font-size:14px; font-weight:600; opacity:0; pointer-events:none;
     transition:opacity .18s; z-index:60; white-space:nowrap;}
   #toast.show{opacity:1;}
