@@ -25,7 +25,8 @@ Single-file, mobile-first web app (`index.html`, no build step, no dependencies)
   - Per-item model bounding-box icons are estimated at ~27% more cost per parse; **NO-GO recommended** because receipt bbox accuracy is risky. Local category icons are the suggested alternative.
   - Store logos add $0 API cost; **GO recommended** using an inline SVG map with alias normalization, with an estimated ~30–120KB weight consideration. Not implemented.
   - `=SPLIT` paste research is complete, but whether a grid paste evaluates a formula on iOS is unconfirmed. An 8-step on-device test checklist exists; an HTML-clipboard route may be better because it pastes values, not formulas. No format change was made; the spec remains locked.
-- **Not yet verified:** live parsing with a real API key (the user still needs to enter one on the live site).
+- Live parsing is verified: Collin runs real orders on the live site with his own key (e.g. the desktop Aldi trip).
+- Store logos are implemented: inline simplified SVG marks (Aldi, Woodman's, Pick 'n Save, Walmart, Target, Costco, Instacart) with alias matching and a neutral storefront fallback, shown on the trip topbar (30px) and home rows (24px).
 
 ## Environment notes
 - The `codex exec` hang was reproduced and root-caused to STDIN, not the path: startup blocks when inherited stdin is an open non-TTY pipe. Always append `< /dev/null` (or detach stdin); with that, `workspace-write` works fine against this folder (`codex 1.0.4`).
@@ -34,8 +35,6 @@ Single-file, mobile-first web app (`index.html`, no build step, no dependencies)
 ## Next steps
 Candidate next steps raised by Collin on 2026-08-01; none is decided yet:
 
-1. Validate an optional second parse provider using an OpenAI key and GPT-5.6 Luna (max reasoning). Browser CORS and structured outputs make it feasible in principle, and the estimated cost is ~20–25× lower than Opus 5; a side-by-side accuracy test on real screenshots is still needed.
+1. (Parked by Collin 2026-08-01: "can keep API as Anthropic for now.") Optional second parse provider using an OpenAI key and GPT-5.6 Luna (max reasoning) — feasible in principle (browser CORS, structured outputs), ~20–25× cheaper than Opus 5; would need a side-by-side accuracy test on real screenshots.
 2. Decide whether to add cross-device desktop↔phone trip sync. Trips are per-browser localStorage today; the recommended fit for the single-file/no-backend architecture is BYOK GitHub Gist sync, with Cloudflare Worker+KV as the alternative.
-3. If approved, implement the inline-SVG store-logo map and alias normalization.
-4. Run the on-device `=SPLIT` checklist if mobile formula paste remains important; keep the current sheet format locked unless the test supports a change.
-5. Complete live parsing verification with a real API key.
+4. `=SPLIT` on-device test PASSED (Collin, 2026-08-01: formula evaluates on both direct grid paste and fx-bar paste on iOS). Before building an optional split-copy toggle, still confirm pasted values sum correctly (text vs number) and that formula-in-cell residue is acceptable; default copy format stays locked.
