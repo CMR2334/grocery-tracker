@@ -1131,7 +1131,7 @@ function renderHome(){
 
   $('app').innerHTML = `
     <div class="topbar">
-      <div class="home-title"><span id="appIconSlot" aria-hidden="true"><img src="icon.svg" alt="" style="width:26px;height:26px;border-radius:7px;display:block;"></span><h1>Grocery Splitter</h1></div>
+      <div class="home-title"><span id="appIconSlot" aria-hidden="true"><img src="icon.svg" alt="" style="width:26px;height:26px;display:block;"></span><h1>Grocery Splitter</h1></div>
       <div class="side"><button class="iconbtn" onclick="A.goSettings()" aria-label="Settings">${IC.gear}</button></div>
     </div>
     ${settings.apiKey ? '' : `<div class="banner banner-info">Add your Anthropic API key in <b>Settings</b> before your first trip.</div>`}
