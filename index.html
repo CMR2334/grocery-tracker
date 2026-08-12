@@ -645,7 +645,7 @@ const PARSE_SCHEMA = {
   required:['store','date','synopsis','items','fees','promos','tax','subtotal','total','notes'],
   properties:{
     store:{type:'string', description:'Store name, e.g. "Aldi", "Pick \'n Save", "Walmart". Best guess from branding. Use the specific store banner shown (e.g. "Metro Market"), never the parent company (e.g. "Kroger").'},
-    synopsis:{type:'string', description:'Summary of what was bought, 23 characters max including spaces, e.g. "snacks + paper goods". NO store name, NO date.'},
+    synopsis:{type:'string', description:'Summary of what was bought, 23 characters max including spaces, starting with a capital letter, e.g. "Snacks + paper goods". NO store name, NO date.'},
     date:{type:'string', description:'Order/receipt date as "M/D" with no leading zeros if visible anywhere, else empty string.'},
     items:{type:'array', items:{
       type:'object', additionalProperties:false,
@@ -696,7 +696,7 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - Promos: only discounts applied to this order (negative lines in the summary), recorded as positive amounts. IGNORE banners about credits or offers "on your next order".
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
 - date: only if a date is actually visible; else empty string.
-- synopsis: a short plain-language summary of the items bought, 23 characters MAX including spaces (e.g. "produce + snacks", "diapers, wipes, formula"). Cover the gist of the whole order, most notable items first. Never include the store name or the date.
+- synopsis: a short plain-language summary of the items bought, 23 characters MAX including spaces, starting with a capital letter (e.g. "Produce + snacks", "Diapers, wipes, formula"). Cover the gist of the whole order, most notable items first. Never include the store name or the date.
 - VERIFY BEFORE ANSWERING (works for any store): (a) your item line_totals should sum to the shown subtotal; (b) subtotal − promos + fees + tip + tax should equal the shown total. If a check fails, re-examine the screenshots for missed items, misread prices, uncounted substitutions, or double-counted discounts, and correct your extraction. Only if it still won't balance, state the exact leftover amount and your best guess why in notes (e.g. "items are $6.56 short of subtotal — a line may be cut off above the visible area").
 - If anything is unreadable or ambiguous, say so in notes.`;
 
@@ -748,6 +748,7 @@ function buildTrip(p){
   const synopsis = (p.synopsis || '').trim();
   let desc = knownStore ? (synopsis || store) : (synopsis ? store + ' ' + synopsis : store);
   if(desc.length > 23) desc = desc.slice(0, 23).trim();
+  if(desc) desc = desc.charAt(0).toUpperCase() + desc.slice(1);
   const createdAt = Date.now();
   return {
     id: uid(), createdAt, updatedAt: createdAt, store, dateStr, description: desc,
