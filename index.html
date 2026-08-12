@@ -273,6 +273,7 @@ const STORE_MARK_FALLBACK = _sm('<rect x=".5" y=".5" width="31" height="31" rx="
 const STORE_MARK_ALIASES = [
   ['aldi', 'aldi'], ['woodman', 'woodmans'],
   ['picknsave', 'picknsave'], ['pickandsave', 'picknsave'], ['picksave', 'picknsave'],
+  ['metromarket', 'metromarket'], ['kroger', 'metromarket'],
   ['walmart', 'walmart'], ['target', 'target'], ['costco', 'costco'], ['instacart', 'instacart']
 ];
 
@@ -643,7 +644,7 @@ const PARSE_SCHEMA = {
   type:'object', additionalProperties:false,
   required:['store','date','synopsis','items','fees','promos','tax','subtotal','total','notes'],
   properties:{
-    store:{type:'string', description:'Store name, e.g. "Aldi", "Pick \'n Save", "Walmart". Best guess from branding.'},
+    store:{type:'string', description:'Store name, e.g. "Aldi", "Pick \'n Save", "Walmart". Best guess from branding. Use the specific store banner shown (e.g. "Metro Market"), never the parent company (e.g. "Kroger").'},
     synopsis:{type:'string', description:'Summary of what was bought, 23 characters max including spaces, e.g. "snacks + paper goods". NO store name, NO date.'},
     date:{type:'string', description:'Order/receipt date as "M/D" with no leading zeros if visible anywhere, else empty string.'},
     items:{type:'array', items:{
@@ -652,7 +653,7 @@ const PARSE_SCHEMA = {
       properties:{
         name:{type:'string', description:'Product name as shown, size suffix ok.'},
         qty:{type:'integer', description:'Quantity for this line.'},
-        line_total:{type:'number', description:'Final charged price for the whole line (qty included), using sale price when an original price is struck through.'},
+        line_total:{type:'number', description:'Price for the whole line (qty included). Use the sale price when struck through by a store sale — but if the markdown comes from an order-level promo code that also appears as its own discount line in the summary, use the ORIGINAL price so the promo is not counted twice.'},
         taxable:{type:'boolean', description:'Wisconsin sales-tax guess for this item.'},
         tax_reason:{type:'string', description:'Very short reason, e.g. "grocery food - exempt", "candy - taxable".'}
       }
@@ -687,7 +688,8 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 
 - Screenshots may be scrolled captures of the SAME order with overlapping rows — deduplicate; each product appears once.
 - One screenshot may be a checkout/summary view — use it for fees, tip, delivery, promos, tax, and total.
-- line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
+- line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price because of a store sale, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
+- EXCEPTION — promo codes: if item markdowns are attributed to a promo/coupon code (e.g. "$1.86 from FAST30 promo code") AND the order summary lists that code as one combined discount line (e.g. "FAST30 promo code −$10.04"), record each item at its ORIGINAL pre-promo price and record the promo once in promos. Items must sum to the pre-promo subtotal. Never subtract the same promo twice.
 - Delivery shown as $0.00 (e.g. free with Instacart+) = 0. Ignore the crossed-out original fee.
 - Promos: only discounts applied to this order (negative lines in the summary), recorded as positive amounts. IGNORE banners about credits or offers "on your next order".
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
