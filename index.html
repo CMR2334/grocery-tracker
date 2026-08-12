@@ -697,7 +697,8 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
 - date: only if a date is actually visible; else empty string.
 - synopsis: a short plain-language summary of the items bought, 23 characters MAX including spaces (e.g. "produce + snacks", "diapers, wipes, formula"). Cover the gist of the whole order, most notable items first. Never include the store name or the date.
-- If item prices don't sum to the shown subtotal, or anything is unreadable, say so in notes.`;
+- VERIFY BEFORE ANSWERING (works for any store): (a) your item line_totals should sum to the shown subtotal; (b) subtotal − promos + fees + tip + tax should equal the shown total. If a check fails, re-examine the screenshots for missed items, misread prices, uncounted substitutions, or double-counted discounts, and correct your extraction. Only if it still won't balance, state the exact leftover amount and your best guess why in notes (e.g. "items are $6.56 short of subtotal — a line may be cut off above the visible area").
+- If anything is unreadable or ambiguous, say so in notes.`;
 
 async function parseScreenshots(dataUrls){
   const content = dataUrls.map(u => {
