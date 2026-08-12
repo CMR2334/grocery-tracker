@@ -650,7 +650,7 @@ function tripDesc(t, cat){
     const n = itemShortName(it);
     if(!names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n);
   }
-  if(!names.length) return String(t.synopsis || '').trim() || t.store || '';
+  if(!names.length) return '';
   let desc = names[0];
   for(let i = 1; i < names.length; i++){
     const next = desc + ' + ' + names[i].toLowerCase();
@@ -719,7 +719,7 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 
 - Screenshots may be scrolled captures of the SAME order with overlapping rows — deduplicate those; an identical row seen in two overlapping captures is one line.
 - BUT the same product can legitimately appear on multiple lines (e.g. under "shopped" AND again as a substitution or added item). Those are NOT duplicates — merge them into ONE item whose qty and line_total are the TOTALS across those lines (e.g. 2 + 2 substituted = qty 4 at the combined price).
-- Substitutions: count the substitute product actually charged, not the originally requested item. Exclude unavailable/refunded items that were not charged.
+- Substitutions: record ONLY the product actually delivered and charged. Substitution rows often show the originally ordered item's name or flavor (e.g. "Flavor: Vanilla" when Vanilla was out of stock and replaced) — ignore the ordered variant entirely: never append it to the name, and if the delivered substitute is the same product as another line, that is ONE merged item (summed qty and price). Exclude unavailable/refunded items that were not charged.
 - One screenshot may be a checkout/summary view — use it for fees, tip, delivery, promos, tax, and total.
 - line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price because of a store sale, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
 - EXCEPTION — promo codes: if item markdowns are attributed to a promo/coupon code (e.g. "$1.86 from FAST30 promo code") AND the order summary lists that code as one combined discount line (e.g. "FAST30 promo code −$10.04"), record each item at its ORIGINAL pre-promo price and record the promo once in promos. Items must sum to the pre-promo subtotal. Never subtract the same promo twice.
