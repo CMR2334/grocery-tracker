@@ -1334,7 +1334,7 @@ function renderTrip(id){
     <div class="topbar">
       <div class="side trip-side"><button class="iconbtn" onclick="A.goHome()" aria-label="Back">${IC.back}</button>
         <span class="store-badge store-badge-trip" aria-hidden="true">${storeBadgeMarkup(t.store)}</span>
-        <div class="trip-title"><h1 style="font-size:19px;">${esc(t.store)}</h1><div class="small muted">${esc(t.dateStr)} · ${t.items.length} items</div></div>
+        <div class="trip-title"><h1 style="font-size:19px;cursor:pointer;" onclick="A.renameStore()" title="Tap to rename the store">${esc(t.store)}</h1><div class="small muted">${esc(t.dateStr)} · ${t.items.length} items · <button class="linklike" onclick="A.renameStore()">Rename</button></div></div>
       </div>
       <button class="iconbtn" onclick="A.deleteTrip('${t.id}')" aria-label="Delete trip">${IC.trash}</button>
     </div>
@@ -1563,6 +1563,13 @@ const A = {
     renderHome();
   },
   clearNotes(){ const t = tripById(currentTripId); if(t){ t.notes = ''; persist(); rerenderTrip(); } },
+  renameStore(){
+    const t = tripById(currentTripId); if(!t) return;
+    const v = prompt('Store name', t.store); if(v === null) return;
+    const name = v.trim();
+    if(!name || name === t.store) return;
+    t.store = name; persist(); rerenderTrip();
+  },
   descChanged(v){
     const t = tripById(currentTripId); if(!t) return;
     t.description = v.slice(0, 23); persist();
