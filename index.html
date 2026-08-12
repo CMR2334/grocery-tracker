@@ -638,8 +638,20 @@ function itemShortName(it){
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
 
+// last word of a short name, e.g. "Protein waffles" -> "waffles"
+function tinyName(n){
+  const w = String(n).trim().split(/\s+/);
+  return w[w.length - 1];
+}
+// lowercase a generic name's first letter; leave brand-ish names (inner caps) alone
+function decap(n){
+  return /[A-Z]/.test(n.slice(1)) ? n : n.charAt(0).toLowerCase() + n.slice(1);
+}
+function recap(n){ return n.charAt(0).toUpperCase() + n.slice(1); }
+
 // description for one person's sheet row: manual override if typed, else built
-// from that person's assigned items, else the parse synopsis.
+// from that person's assigned items. Degrades gracefully into the 23-char
+// sheet limit: full names -> first full + rest tiny -> all tiny -> prefix "+".
 function tripDesc(t, cat){
   const manual = String(t.description || '').trim();
   if(manual) return manual;
@@ -651,13 +663,34 @@ function tripDesc(t, cat){
     if(!names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n);
   }
   if(!names.length) return '';
-  let desc = names[0];
-  for(let i = 1; i < names.length; i++){
-    const next = desc + ' + ' + names[i].toLowerCase();
-    if(next.length > 23) break;
-    desc = next;
+  const LIMIT = 23;
+  const fulls  = names.map((n, i) => i === 0 ? recap(n) : decap(n));
+  const tinies = names.map((n, i) => i === 0 ? recap(tinyName(n)) : decap(tinyName(n)));
+  const join = parts => parts.join(', ');
+  const attempts = [
+    fulls,
+    fulls.map((n, i) => i === 0 ? n : tinies[i]),
+    tinies
+  ];
+  for(const parts of attempts){
+    if(join(parts).length <= LIMIT) return join(parts);
   }
-  return desc.length > 23 ? desc.slice(0, 23).trim() : desc;
+  // nothing fits whole: longest prefix plus "+". Try starting with the full
+  // first name and with its tiny form; keep whichever fits MORE items.
+  const greedy = first => {
+    if(first.length + 1 > LIMIT) return null;
+    let parts = [first];
+    for(let i = 1; i < names.length; i++){
+      const cand = [...parts, tinies[i]];
+      if(join(cand).length + 1 <= LIMIT) parts = cand; else break;
+    }
+    return parts;
+  };
+  const a = greedy(fulls[0]), b = greedy(tinies[0]);
+  const parts = (b && (!a || b.length > a.length)) ? b : (a || [tinies[0].slice(0, LIMIT - 1)]);
+  let out = join(parts);
+  if(parts.length < names.length) out += '+';
+  return out.length <= LIMIT ? out : out.slice(0, LIMIT - 1).trim() + '+';
 }
 
 function rowStrings(t){
