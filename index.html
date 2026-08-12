@@ -18,9 +18,9 @@
   :root{
     --bg:#f5f3ee; --card:#faf8f4; --ink:#373733; --muted:#696862; --line:#deded7;
     --title:#403e39; --primary:#6b6962; --primary-ink:#faf8f4;
-    --c:#2563eb; --c-bg:#eaf0fe;
-    --s:#7c3aed; --s-bg:#f1eafe;
-    --sh:#0f9d8f; --sh-bg:#e4f5f3;
+    --c:#2563eb; --c-bg:#eaf0fe; --c-btn:#6d89cf;
+    --s:#7c3aed; --s-bg:#f1eafe; --s-btn:#9682cd;
+    --sh:#0f9d8f; --sh-bg:#e4f5f3; --sh-btn:#55998f;
     --green:#4d7055; --green-bg:#e8f0e8;
     --amber:#806035; --amber-bg:#f3ebdc;
     --red:#92534f; --red-bg:#f5e7e4;
@@ -86,9 +86,9 @@
   .seg button{flex:1; border:none; background:transparent; color:var(--muted); font-weight:600;
     font-size:13.5px; padding:9px 4px; min-height:44px; display:flex; align-items:center; justify-content:center;
     border-radius:8px; cursor:pointer; font-family:inherit;}
-  .seg button.on-C{background:var(--c); color:#fff;}
-  .seg button.on-S{background:var(--s); color:#fff;}
-  .seg button.on-SH{background:var(--sh); color:#fff;}
+  .seg button.on-C{background:var(--c-btn); color:#fff;}
+  .seg button.on-S{background:var(--s-btn); color:#fff;}
+  .seg button.on-SH{background:var(--sh-btn); color:#fff;}
 
   .chip{display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:8px 12px; min-height:44px;
     font-size:12px; font-weight:600; border:1px solid var(--line); background:var(--bg); color:var(--muted); cursor:pointer;}
@@ -125,9 +125,9 @@
   .modes button{border:1px solid var(--line); background:var(--bg); color:var(--muted); font-weight:700;
     font-size:12.5px; padding:8px 11px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;
     border-radius:9px; cursor:pointer; font-family:inherit;}
-  .modes button.on-C{background:var(--c); border-color:var(--c); color:#fff;}
-  .modes button.on-S{background:var(--s); border-color:var(--s); color:#fff;}
-  .modes button.on-SH{background:var(--sh); border-color:var(--sh); color:#fff;}
+  .modes button.on-C{background:var(--c-btn); border-color:var(--c-btn); color:#fff;}
+  .modes button.on-S{background:var(--s-btn); border-color:var(--s-btn); color:#fff;}
+  .modes button.on-SH{background:var(--sh-btn); border-color:var(--sh-btn); color:#fff;}
   .modes button.on-X{background:var(--primary); border-color:var(--primary); color:var(--primary-ink);}
 
   .feerow{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:14.5px;}
