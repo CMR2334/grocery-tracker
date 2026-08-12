@@ -686,7 +686,9 @@ const PARSE_SCHEMA = {
 
 const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a store app, or a paper receipt photo). Extract the order into the JSON schema. Rules:
 
-- Screenshots may be scrolled captures of the SAME order with overlapping rows — deduplicate; each product appears once.
+- Screenshots may be scrolled captures of the SAME order with overlapping rows — deduplicate those; an identical row seen in two overlapping captures is one line.
+- BUT the same product can legitimately appear on multiple lines (e.g. under "shopped" AND again as a substitution or added item). Those are NOT duplicates — merge them into ONE item whose qty and line_total are the TOTALS across those lines (e.g. 2 + 2 substituted = qty 4 at the combined price).
+- Substitutions: count the substitute product actually charged, not the originally requested item. Exclude unavailable/refunded items that were not charged.
 - One screenshot may be a checkout/summary view — use it for fees, tip, delivery, promos, tax, and total.
 - line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price because of a store sale, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
 - EXCEPTION — promo codes: if item markdowns are attributed to a promo/coupon code (e.g. "$1.86 from FAST30 promo code") AND the order summary lists that code as one combined discount line (e.g. "FAST30 promo code −$10.04"), record each item at its ORIGINAL pre-promo price and record the promo once in promos. Items must sum to the pre-promo subtotal. Never subtract the same promo twice.
