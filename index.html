@@ -724,12 +724,16 @@ async function parseScreenshots(dataUrls){
     },
     body: JSON.stringify(body)
   });
-  const json = await resp.json();
+  let json;
+  try{ json = await resp.json(); }
+  catch{ throw new Error('The response was cut off mid-download — usually a brief connection hiccup. Just try again.'); }
   if(json.type === 'error') throw new Error(json.error?.message || 'API error');
   if(json.stop_reason === 'refusal') throw new Error('The model declined this request. Try again.');
+  if(json.stop_reason === 'max_tokens') throw new Error('The answer ran out of room before finishing. Try again, or split the order into fewer screenshots per parse.');
   const textBlock = (json.content || []).find(b => b.type === 'text');
   if(!textBlock) throw new Error('No text in response.');
-  return JSON.parse(textBlock.text);
+  try{ return JSON.parse(textBlock.text); }
+  catch{ throw new Error('The model returned an incomplete answer — this is transient. Try again.'); }
 }
 
 function buildTrip(p){
@@ -1549,7 +1553,7 @@ const A = {
       toast('Trip ready');
     }catch(e){
       btn.disabled = false;
-      st.innerHTML = `<div class="banner banner-err"><b>Unable to read the screenshots.</b><br>${esc(e.message)}<br><span class="small">Check the API key in Settings and your connection, then try again.</span></div>`;
+      st.innerHTML = `<div class="banner banner-err"><b>Unable to read the screenshots.</b><br>${esc(e.message)}</div>`;
     }finally{
       clearInterval(tick);
       parsing = false;
