@@ -629,13 +629,43 @@ function computeTotals(t){
 }
 
 // clipboard strings — sheet layout: A=Shared $, B=Shared desc, C=Steph $, D=Steph desc
+function itemShortName(it){
+  let n = String(it.shortName || '').trim();
+  if(!n){
+    n = String(it.name || 'Item').split(/[,(]/)[0].trim();
+    n = n.split(/\s+/).slice(-2).join(' ');
+  }
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+
+// description for one person's sheet row: manual override if typed, else built
+// from that person's assigned items, else the parse synopsis.
+function tripDesc(t, cat){
+  const manual = String(t.description || '').trim();
+  if(manual) return manual;
+  const names = [];
+  for(const it of (t.items || [])){
+    const inCat = it.split ? num(it.split[cat]) > 0 : it.assign === cat;
+    if(!inCat) continue;
+    const n = itemShortName(it);
+    if(!names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n);
+  }
+  if(!names.length) return String(t.synopsis || '').trim() || t.store || '';
+  let desc = names[0];
+  for(let i = 1; i < names.length; i++){
+    const next = desc + ' + ' + names[i].toLowerCase();
+    if(next.length > 23) break;
+    desc = next;
+  }
+  return desc.length > 23 ? desc.slice(0, 23).trim() : desc;
+}
+
 function rowStrings(t){
   const r = computeTotals(t);
-  const d = t.description || '';
   return {
-    shared:  money(r.totals.SH) + '\t' + d,
-    steph:   money(r.totals.S) + '\t' + d,
-    fullRow: money(r.totals.SH) + '\t' + d + '\t' + money(r.totals.S) + '\t' + d
+    shared:  money(r.totals.SH) + '\t' + tripDesc(t, 'SH'),
+    steph:   money(r.totals.S) + '\t' + tripDesc(t, 'S'),
+    fullRow: money(r.totals.SH) + '\t' + tripDesc(t, 'SH') + '\t' + money(r.totals.S) + '\t' + tripDesc(t, 'S')
   };
 }
 
@@ -649,9 +679,10 @@ const PARSE_SCHEMA = {
     date:{type:'string', description:'Order/receipt date as "M/D" with no leading zeros if visible anywhere, else empty string.'},
     items:{type:'array', items:{
       type:'object', additionalProperties:false,
-      required:['name','qty','line_total','taxable','tax_reason'],
+      required:['name','short_name','qty','line_total','taxable','tax_reason'],
       properties:{
         name:{type:'string', description:'Product name as shown, size suffix ok.'},
+        short_name:{type:'string', description:'Generic 1-2 word label for the item, capitalized first word, e.g. "Protein coffee", "Cheese sticks", "Protein waffles", "Chicken tenders". Prefer the category noun over brand or flavor.'},
         qty:{type:'integer', description:'Quantity for this line.'},
         line_total:{type:'number', description:'Price for the whole line (qty included). Use the sale price when struck through by a store sale — but if the markdown comes from an order-level promo code that also appears as its own discount line in the summary, use the ORIGINAL price so the promo is not counted twice.'},
         taxable:{type:'boolean', description:'Wisconsin sales-tax guess for this item.'},
@@ -697,6 +728,7 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
 - date: only if a date is actually visible; else empty string.
 - synopsis: a short plain-language summary of the items bought, 23 characters MAX including spaces, starting with a capital letter (e.g. "Produce + snacks", "Diapers, wipes, formula"). Cover the gist of the whole order, most notable items first. Never include the store name or the date.
+- short_name per item: a generic 1-2 word label, category noun over brand/flavor ("Cheese sticks" not "Kraft Big Stick"; "Protein coffee" not "Free Rein Cold Brew"). Two items that are variants of the same thing get the SAME short_name (e.g. both waffle flavors = "Protein waffles").
 - VERIFY BEFORE ANSWERING (works for any store): (a) your item line_totals should sum to the shown subtotal; (b) subtotal − promos + fees + tip + tax should equal the shown total. If a check fails, re-examine the screenshots for missed items, misread prices, uncounted substitutions, or double-counted discounts, and correct your extraction. Only if it still won't balance, state the exact leftover amount and your best guess why in notes (e.g. "items are $6.56 short of subtotal — a line may be cut off above the visible area").
 - If anything is unreadable or ambiguous, say so in notes.`;
 
@@ -740,20 +772,15 @@ function buildTrip(p){
   const today = new Date();
   const dateStr = (p.date && p.date.trim()) ? p.date.trim() : `${today.getMonth()+1}/${today.getDate()}`;
   const store = (p.store || 'Store').trim();
-  // stores already in the sheet don't need naming in the description; item synopsis only.
-  // unknown stores lead with the store name, then as much of the synopsis as fits.
-  const SHEET_STORES = ['kwiktrip','amazon','walmart','picknsave','aldi'];
-  const storeKey = store.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const knownStore = SHEET_STORES.some(k => storeKey.startsWith(k));
-  const synopsis = (p.synopsis || '').trim();
-  let desc = knownStore ? (synopsis || store) : (synopsis ? store + ' ' + synopsis : store);
-  if(desc.length > 23) desc = desc.slice(0, 23).trim();
-  if(desc) desc = desc.charAt(0).toUpperCase() + desc.slice(1);
+  let synopsis = (p.synopsis || '').trim();
+  if(synopsis) synopsis = synopsis.charAt(0).toUpperCase() + synopsis.slice(1);
   const createdAt = Date.now();
+  // description stays empty: sheet rows auto-build from each person's items
+  // (tripDesc); typing in the description field overrides both rows.
   return {
-    id: uid(), createdAt, updatedAt: createdAt, store, dateStr, description: desc,
+    id: uid(), createdAt, updatedAt: createdAt, store, dateStr, description: '', synopsis,
     items: (p.items || []).map(i => ({
-      id: uid(), name: i.name || 'Item',
+      id: uid(), name: i.name || 'Item', shortName: (i.short_name || '').trim(),
       qty: Math.max(1, Math.round(num(i.qty) || 1)),
       lineTotal: round2(i.line_total),
       taxable: !!i.taxable, taxReason: i.tax_reason || '',
@@ -1115,8 +1142,8 @@ function renderHome(){
     return `<div class="triprow" onclick="A.openTrip('${t.id}')">
       <span class="store-badge store-badge-home" aria-hidden="true">${storeBadgeMarkup(t.store)}</span>
       <div class="tinfo">
-        <div class="tname">${esc(t.description || (t.store + ' ' + t.dateStr))}</div>
-        <div class="tsub">${esc(t.store)} · ${t.items.length} item${t.items.length===1?'':'s'} · ${new Date(t.createdAt).toLocaleDateString()}</div>
+        <div class="tname">${esc(t.store)}</div>
+        <div class="tsub">${t.items.length} item${t.items.length===1?'':'s'} · ${new Date(t.createdAt).toLocaleDateString()}</div>
       </div>
       <div class="tamounts">
         <span class="dot dot-SH"></span> ${money(r.totals.SH)}<br>
@@ -1350,8 +1377,8 @@ function renderTrip(id){
     ${banner}
 
     <div class="card desc-wrap">
-      <label class="flabel" style="margin-top:0;">Sheet description · pasted beside both values</label>
-      <input class="in" id="descInput" maxlength="23" value="${esc(t.description)}" oninput="A.descChanged(this.value)">
+      <label class="flabel" style="margin-top:0;">Custom description · optional, replaces the auto per-person text below</label>
+      <input class="in" id="descInput" maxlength="23" value="${esc(t.description)}" placeholder="Auto from assigned items" oninput="A.descChanged(this.value)">
       <div class="counter ${descLen>23?'over':''}" id="descCount">${descLen}/23</div>
     </div>
 
@@ -1380,13 +1407,13 @@ function renderTrip(id){
       <div class="outrow">
         <span class="dot dot-SH"></span>
         <div class="grow"><div style="font-weight:600;">Shared &nbsp;<span class="money">${money(r.totals.SH)}</span></div>
-          <div class="small muted outdesc">${esc(t.description)}</div></div>
+          <div class="small muted outdesc" data-cat="SH">${esc(tripDesc(t, 'SH'))}</div></div>
         <button class="copybtn copy-SH" onclick="A.copyRow('shared')">${IC.copy}A:B</button>
       </div>
       <div class="outrow">
         <span class="dot dot-S"></span>
         <div class="grow"><div style="font-weight:600;">Steph &nbsp;<span class="money">${money(r.totals.S)}</span></div>
-          <div class="small muted outdesc">${esc(t.description)}</div></div>
+          <div class="small muted outdesc" data-cat="S">${esc(tripDesc(t, 'S'))}</div></div>
         <button class="copybtn copy-S" onclick="A.copyRow('steph')">${IC.copy}C:D</button>
       </div>
       <div class="outrow">
@@ -1583,7 +1610,7 @@ const A = {
     t.description = v.slice(0, 23); persist();
     const c = $('descCount'); if(c) c.textContent = t.description.length + '/23';
     // update the output row descriptions in place (no re-render → keeps focus)
-    document.querySelectorAll('.outdesc').forEach(el => { el.textContent = t.description; });
+    document.querySelectorAll('.outdesc').forEach(el => { el.textContent = tripDesc(t, el.dataset.cat); });
   },
 
   // items
