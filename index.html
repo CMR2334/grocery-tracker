@@ -274,12 +274,15 @@ const STORE_MARK_ALIASES = [
   ['aldi', 'aldi'], ['woodman', 'woodmans'],
   ['picknsave', 'picknsave'], ['pickandsave', 'picknsave'], ['picksave', 'picknsave'],
   ['metromarket', 'metromarket'], ['kroger', 'metromarket'],
+  ['hyvee', 'hyvee'], ['kwiktrip', 'kwiktrip'], ['amazon', 'amazon'],
   ['walmart', 'walmart'], ['target', 'target'], ['costco', 'costco'], ['instacart', 'instacart']
 ];
 
 function canonicalStoreId(name){
   const normalized = String(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  return STORE_MARK_ALIASES.find(([alias]) => normalized.includes(alias))?.[1] || '';
+  // alias table maps variants/parents to one id; any other store falls back to
+  // its own normalized name, so a logo named <normalized>.png in R2 just works
+  return STORE_MARK_ALIASES.find(([alias]) => normalized.includes(alias))?.[1] || normalized;
 }
 
 function storeMarkFor(name){
@@ -757,7 +760,8 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price because of a store sale, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
 - EXCEPTION — promo codes: if item markdowns are attributed to a promo/coupon code (e.g. "$1.86 from FAST30 promo code") AND the order summary lists that code as one combined discount line (e.g. "FAST30 promo code −$10.04"), record each item at its ORIGINAL pre-promo price and record the promo once in promos. Items must sum to the pre-promo subtotal. Never subtract the same promo twice.
 - Delivery shown as $0.00 (e.g. free with Instacart+) = 0. Ignore the crossed-out original fee.
-- Promos: only discounts applied to this order (negative lines in the summary), recorded as positive amounts. IGNORE banners about credits or offers "on your next order".
+- Promos: only genuine discounts applied to this order (negative lines in the summary), recorded as positive amounts. IGNORE banners about credits or offers "on your next order".
+- Gift-card and account CREDITS (e.g. "DoorDash Credits", "Gift card", account balance applied) are a PAYMENT METHOD, not a discount: never record them in promos and never subtract them. When the shown final total is after credits (even $0.00), report total as the pre-credit amount the order actually cost: items + fees + tip + tax − genuine discounts.
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
 - date: only if a date is actually visible; else empty string.
 - synopsis: a short plain-language summary of the items bought, 29 characters MAX including spaces, starting with a capital letter (e.g. "Produce + snacks", "Diapers, wipes, formula"). Cover the gist of the whole order, most notable items first. Never include the store name or the date.
