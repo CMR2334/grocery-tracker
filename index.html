@@ -1174,7 +1174,7 @@ async function syncNow(){
 function renderHome(){
   currentTripId = null;
   currentView = 'home';
-  const list = trips.map(t => {
+  const list = [...trips].sort((a, b) => num(b.createdAt) - num(a.createdAt)).map(t => {
     const r = computeTotals(t);
     return `<div class="triprow" onclick="A.openTrip('${t.id}')">
       <span class="store-badge store-badge-home" aria-hidden="true">${storeBadgeMarkup(t.store)}</span>
