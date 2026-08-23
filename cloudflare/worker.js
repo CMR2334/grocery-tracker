@@ -68,11 +68,10 @@ function decodePathSegments(pathname) {
 }
 
 function isAuthorized(request, env) {
-  const token = typeof env.SYNC_TOKEN === "string" ? env.SYNC_TOKEN : "";
-  return (
-    token.length > 0 &&
-    request.headers.get("Authorization") === `Bearer ${token}`
-  );
+  // trim both sides so a secret pasted with a stray newline/space still works
+  const token = (typeof env.SYNC_TOKEN === "string" ? env.SYNC_TOKEN : "").trim();
+  const header = (request.headers.get("Authorization") || "").trim();
+  return token.length > 0 && header === `Bearer ${token}`;
 }
 
 function requireValidTripId(tripId) {
