@@ -644,10 +644,18 @@ function itemShortName(it){
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
 
-// last word of a short name, e.g. "Protein waffles" -> "waffles"
-function tinyName(n){
-  const w = String(n).trim().split(/\s+/);
-  return w[w.length - 1];
+// Candidate labels ordered from most descriptive to most compact. Keep the
+// first word available so names like "Egg bites" and "Chicken bites" do not
+// collapse into the same "bites" label when the description is crowded.
+function nameCandidates(n){
+  const words = String(n).trim().split(/\s+/).filter(Boolean);
+  const out = [
+    { value:String(n).trim(), rank:30 },
+    { value:words.slice(0, 2).join(' '), rank:30 },
+    { value:words[0], rank:18 },
+    { value:words[words.length - 1], rank:6 }
+  ];
+  return out.filter((x, i) => x.value && out.findIndex(y => y.value.toLowerCase() === x.value.toLowerCase()) === i);
 }
 // lowercase a generic name's first letter; leave brand-ish names (inner caps) alone
 function decap(n){
@@ -657,7 +665,7 @@ function recap(n){ return n.charAt(0).toUpperCase() + n.slice(1); }
 
 // description for one person's sheet row: manual override if typed, else built
 // from that person's assigned items. Degrades gracefully into the 29-char
-// sheet limit: full names -> first full + rest tiny -> all tiny -> prefix "+".
+// sheet limit while keeping shortened labels distinct where possible.
 function tripDesc(t, cat){
   const manual = String(t.description || '').trim();
   if(manual) return manual;
@@ -670,33 +678,37 @@ function tripDesc(t, cat){
   }
   if(!names.length) return '';
   const LIMIT = 29;
-  const fulls  = names.map((n, i) => i === 0 ? recap(n) : decap(n));
-  const tinies = names.map((n, i) => i === 0 ? recap(tinyName(n)) : decap(tinyName(n)));
   const join = parts => parts.join(', ');
-  const attempts = [
-    fulls,
-    fulls.map((n, i) => i === 0 ? n : tinies[i]),
-    tinies
-  ];
-  for(const parts of attempts){
-    if(join(parts).length <= LIMIT) return join(parts);
-  }
-  // nothing fits whole: longest prefix plus "+". Try starting with the full
-  // first name and with its tiny form; keep whichever fits MORE items.
-  const greedy = first => {
-    if(first.length + 1 > LIMIT) return null;
-    let parts = [first];
-    for(let i = 1; i < names.length; i++){
-      const cand = [...parts, tinies[i]];
-      if(join(cand).length + 1 <= LIMIT) parts = cand; else break;
+  const candidates = names.map(nameCandidates);
+  let best = null;
+  const better = (parts, score) => {
+    const count = parts.length;
+    if(!best || count > best.count || (count === best.count && score > best.score)){
+      best = { parts, count, score };
     }
-    return parts;
   };
-  const a = greedy(fulls[0]), b = greedy(tinies[0]);
-  const parts = (b && (!a || b.length > a.length)) ? b : (a || [tinies[0].slice(0, LIMIT - 1)]);
-  let out = join(parts);
-  if(parts.length < names.length) out += '+';
-  return out.length <= LIMIT ? out : out.slice(0, LIMIT - 1).trim() + '+';
+  const visit = (i, parts, used, score) => {
+    if(i > 0){
+      const shortened = join(parts) + (i < names.length ? '+' : '');
+      if(shortened.length <= LIMIT) better(parts, score);
+    }
+    if(i >= names.length) return;
+    for(const choice of candidates[i]){
+      const candidate = choice.value;
+      const part = i === 0 ? recap(candidate) : decap(candidate);
+      const key = part.toLowerCase();
+      if(used.has(key)) continue;
+      const next = [...parts, part];
+      if(join(next).length + (i + 1 < names.length ? 1 : 0) > LIMIT) continue;
+      visit(i + 1, next, new Set([...used, key]), score + part.length + choice.rank + candidate.split(/\s+/).length * 2);
+    }
+  };
+  visit(0, [], new Set(), 0);
+  if(best){
+    const out = join(best.parts) + (best.count < names.length ? '+' : '');
+    return out.length <= LIMIT ? out : out.slice(0, LIMIT - 1).trim() + '+';
+  }
+  return recap(names[0]).slice(0, LIMIT - 1).trim() + '+';
 }
 
 function rowStrings(t){
@@ -1413,6 +1425,8 @@ function renderTrip(id){
   const rows = rowStrings(t);
   const descLen = (t.description || '').length;
   const images = tripImages[t.id] || [];
+  const notLoggedCat = payerOf(t) === 'S' ? 'C' : 'S';
+  const notLoggedLabel = CAT_LABEL[notLoggedCat];
   const imageStrip = images.length ? `<div class="trip-images" aria-label="Trip screenshots">
     ${images.map((u, i) => `<button class="trip-image" type="button" onclick="A.openTripImage('${t.id}',${i})" aria-label="Expand screenshot ${i+1}"><img src="${u}" alt="Screenshot ${i+1}"></button>`).join('')}
   </div>` : '';
@@ -1474,8 +1488,8 @@ function renderTrip(id){
           <div class="small muted">One paste fills columns A through D</div></div>
         <button class="copybtn copy-full" onclick="A.copyRow('fullRow')">${IC.copy}A–D</button>
       </div>
-      <div class="sumline" style="margin-top:10px;"><span class="muted">Collin · not logged to the sheet</span>
-        <span class="money" style="color:var(--c);">${signedMoney(t, r.totals.C)}</span></div>
+      <div class="sumline" style="margin-top:10px;"><span class="muted">${notLoggedLabel} · not logged to the sheet</span>
+        <span class="money" style="color:var(--${notLoggedCat === 'S' ? 's' : 'c'});">${signedMoney(t, r.totals[notLoggedCat])}</span></div>
       <div class="sumline"><span class="muted">Total</span>
         <span class="money">${signedMoney(t, r.totals.C + r.totals.S + r.totals.SH)}</span></div>
       <details>
