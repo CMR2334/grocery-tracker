@@ -468,6 +468,13 @@ for(const t of trips){
   const before = t && t.updatedAt;
   ensureTripUpdatedAt(t);
   if(before !== t.updatedAt) initialStateNeedsPersist = true;
+  // Older Steph-paid receipts kept default items under Collin when Shared
+  // items were present. Migrate those defaults once; later item edits remain.
+  if(t && t.paidBy === 'S' && t.payerAssignmentsMigrated !== true){
+    for(const it of (t.items || [])) if(!it.split && it.assign === 'C') it.assign = 'S';
+    t.payerAssignmentsMigrated = true;
+    initialStateNeedsPersist = true;
+  }
 }
 const normalizedTombstones = dedupeTombstones(tombstones);
 if(JSON.stringify(normalizedTombstones) !== JSON.stringify(tombstones)) initialStateNeedsPersist = true;
@@ -666,12 +673,13 @@ function recap(n){ return n.charAt(0).toUpperCase() + n.slice(1); }
 // description for one person's sheet row: manual override if typed, else built
 // from that person's assigned items. Degrades gracefully into the 29-char
 // sheet limit while keeping shortened labels distinct where possible.
-function tripDesc(t, cat){
+function tripDescCats(t, cats){
   const manual = String(t.description || '').trim();
   if(manual) return manual;
+  const categoryList = Array.isArray(cats) ? cats : [cats];
   const names = [];
   for(const it of (t.items || [])){
-    const inCat = it.split ? num(it.split[cat]) > 0 : it.assign === cat;
+    const inCat = it.split ? categoryList.some(cat => num(it.split[cat]) > 0) : categoryList.includes(it.assign);
     if(!inCat) continue;
     const n = itemShortName(it);
     if(!names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n);
@@ -711,12 +719,27 @@ function tripDesc(t, cat){
   return recap(names[0]).slice(0, LIMIT - 1).trim() + '+';
 }
 
+function tripDesc(t, cat){ return tripDescCats(t, [cat]); }
+
+function counterpartyFor(t){ return payerOf(t) === 'S' ? 'C' : 'S'; }
+
+function counterpartyCharge(t, r){
+  const cat = counterpartyFor(t);
+  const hasAssignedItems = (t.items || []).some(it => it.split ? num(it.split[cat]) > 0 : it.assign === cat);
+  return {
+    cat,
+    cents: hasAssignedItems ? r.totals[cat] : 0,
+    desc: hasAssignedItems ? tripDesc(t, cat) : ''
+  };
+}
+
 function rowStrings(t){
   const r = computeTotals(t);
+  const charge = counterpartyCharge(t, r);
   return {
     shared:  signedMoney(t, r.totals.SH) + '\t' + tripDesc(t, 'SH'),
-    steph:   signedMoney(t, r.totals.S) + '\t' + tripDesc(t, 'S'),
-    fullRow: signedMoney(t, r.totals.SH) + '\t' + tripDesc(t, 'SH') + '\t' + signedMoney(t, r.totals.S) + '\t' + tripDesc(t, 'S')
+    steph:   signedMoney(t, charge.cents) + '\t' + charge.desc,
+    fullRow: signedMoney(t, r.totals.SH) + '\t' + tripDesc(t, 'SH') + '\t' + signedMoney(t, charge.cents) + '\t' + charge.desc
   };
 }
 
@@ -830,7 +853,7 @@ function buildTrip(p){
   // description stays empty: sheet rows auto-build from each person's items
   // (tripDesc); typing in the description field overrides both rows.
   return {
-    id: uid(), createdAt, updatedAt: createdAt, store, dateStr, description: '', synopsis, paidBy: 'C',
+    id: uid(), createdAt, updatedAt: createdAt, store, dateStr, description: '', synopsis, paidBy: 'C', payerAssignmentsMigrated: false,
     items: (p.items || []).map(i => ({
       id: uid(), name: i.name || 'Item', shortName: (i.short_name || '').trim(),
       qty: Math.max(1, Math.round(num(i.qty) || 1)),
@@ -1425,7 +1448,8 @@ function renderTrip(id){
   const rows = rowStrings(t);
   const descLen = (t.description || '').length;
   const images = tripImages[t.id] || [];
-  const notLoggedCat = payerOf(t) === 'S' ? 'C' : 'S';
+  const charge = counterpartyCharge(t, r);
+  const notLoggedCat = charge.cat;
   const notLoggedLabel = CAT_LABEL[notLoggedCat];
   const imageStrip = images.length ? `<div class="trip-images" aria-label="Trip screenshots">
     ${images.map((u, i) => `<button class="trip-image" type="button" onclick="A.openTripImage('${t.id}',${i})" aria-label="Expand screenshot ${i+1}"><img src="${u}" alt="Screenshot ${i+1}"></button>`).join('')}
@@ -1479,8 +1503,8 @@ function renderTrip(id){
       </div>
       <div class="outrow">
         <span class="dot dot-${notLoggedCat}"></span>
-        <div class="grow"><div style="font-weight:600;">${notLoggedLabel} &nbsp;<span class="money">${signedMoney(t, r.totals.S)}</span></div>
-          <div class="small muted outdesc" data-cat="S">${esc(tripDesc(t, 'S'))}</div></div>
+        <div class="grow"><div style="font-weight:600;">${notLoggedLabel} &nbsp;<span class="money">${signedMoney(t, charge.cents)}</span></div>
+          <div class="small muted outdesc" data-cat="${notLoggedCat}">${esc(charge.desc)}</div></div>
         <button class="copybtn copy-S" onclick="A.copyRow('steph')">${IC.copy}C:D</button>
       </div>
       <div class="outrow">
@@ -1489,7 +1513,7 @@ function renderTrip(id){
         <button class="copybtn copy-full" onclick="A.copyRow('fullRow')">${IC.copy}A–D</button>
       </div>
       <div class="sumline" style="margin-top:10px;"><span class="muted">${notLoggedLabel} · not logged to the sheet</span>
-        <span class="money" style="color:var(--${notLoggedCat === 'S' ? 's' : 'c'});">${signedMoney(t, r.totals[notLoggedCat])}</span></div>
+        <span class="money" style="color:var(--${notLoggedCat === 'S' ? 's' : 'c'});">${signedMoney(t, 0)}</span></div>
       <div class="sumline"><span class="muted">Total</span>
         <span class="money">${signedMoney(t, r.totals.C + r.totals.S + r.totals.SH)}</span></div>
       <details>
@@ -1671,11 +1695,13 @@ const A = {
     const prior = payerOf(t);
     if(prior === next) return;
     t.paidBy = next;
-    // Parsed receipts start with every item assigned to Collin. When the
-    // payer is changed before any item-level choices, make Steph the default.
-    // Only switch back automatically when the whole receipt is still uniform.
+    // Parsed receipts start with every item assigned to Collin. When Steph
+    // pays, convert all direct Collin defaults, even when Shared is present.
+    if(next === 'S' && prior === 'C'){
+      t.items.forEach(it => { if(!it.split && it.assign === 'C') it.assign = 'S'; });
+      t.payerAssignmentsMigrated = true;
+    }
     const allAssignedTo = cat => t.items.length > 0 && t.items.every(it => !it.split && it.assign === cat);
-    if(next === 'S' && prior === 'C' && allAssignedTo('C')) t.items.forEach(it => { it.assign = 'S'; });
     if(next === 'C' && prior === 'S' && allAssignedTo('S')) t.items.forEach(it => { it.assign = 'C'; });
     persist(); rerenderTrip();
   },
