@@ -1478,8 +1478,8 @@ function renderTrip(id){
         <button class="copybtn copy-SH" onclick="A.copyRow('shared')">${IC.copy}A:B</button>
       </div>
       <div class="outrow">
-        <span class="dot dot-S"></span>
-        <div class="grow"><div style="font-weight:600;">Steph &nbsp;<span class="money">${signedMoney(t, r.totals.S)}</span></div>
+        <span class="dot dot-${notLoggedCat}"></span>
+        <div class="grow"><div style="font-weight:600;">${notLoggedLabel} &nbsp;<span class="money">${signedMoney(t, r.totals.S)}</span></div>
           <div class="small muted outdesc" data-cat="S">${esc(tripDesc(t, 'S'))}</div></div>
         <button class="copybtn copy-S" onclick="A.copyRow('steph')">${IC.copy}C:D</button>
       </div>
