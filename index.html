@@ -617,18 +617,30 @@ function computeTotals(t){
     }
   }
 
-  // App/card credits are a separate benefit from store discounts. They are
-  // always allocated to Collin, regardless of the store-discount allocation.
+  // App/card credits are always Collin's. When a credit is not shown as its
+  // own receipt line, it is presumed to be included in the receipt's discount
+  // total; reduce the discount pool so the order is not discounted twice.
   let creditTotal = 0;
+  let bundledCreditTotal = 0;
   for(const credit of (t.credits || [])){
     const amt = Math.abs(num(credit.amount));
     creditTotal += amt;
+    if(!credit.separate) bundledCreditTotal += amt;
     credits.C += amt;
   }
 
+  const bundledCreditApplied = Math.min(promoTotal, bundledCreditTotal);
+  if(bundledCreditTotal > promoTotal && bundledCreditTotal > 0){
+    warnings.push('Card credits included in the discount exceed the discount amount — the discount pool was reduced to zero.');
+  }
+  const promoScale = promoTotal > 0 ? (promoTotal - bundledCreditApplied) / promoTotal : 1;
+  for(const c of cats) promos[c] *= promoScale;
+  const effectivePromoTotal = promoTotal - bundledCreditApplied;
+
   // round to cents; pin the rounded sum to the computed grand total
-  const computedTotal = lineSum + feeTotal + taxTotal - promoTotal;
-  const netTotal = computedTotal - creditTotal;
+  const separateCreditTotal = creditTotal - bundledCreditApplied;
+  const computedTotal = lineSum + feeTotal + taxTotal - promoTotal - separateCreditTotal;
+  const netTotal = computedTotal;
   const out = {};
   for(const c of cats){
     out[c] = Math.round((items[c] + fees[c] + tax[c] - promos[c] - credits[c]) * 100);
@@ -648,7 +660,7 @@ function computeTotals(t){
     lineSum: Math.round(lineSum*100),
     feeTotal: Math.round(feeTotal*100),
     taxTotal: Math.round(taxTotal*100),
-    promoTotal: Math.round(promoTotal*100),
+    promoTotal: Math.round(effectivePromoTotal*100),
     creditTotal: Math.round(creditTotal*100),
     computedTotal: Math.round(computedTotal*100),
     netTotal: Math.round(netTotal*100),
@@ -799,12 +811,13 @@ const PARSE_SCHEMA = {
       }
     }, description:'Store discounts, coupons, and promo codes applied to THIS order. Keep card-linked credits in credits instead.'},
     credits:{type:'array', items:{
-      type:'object', additionalProperties:false, required:['label','amount'],
+      type:'object', additionalProperties:false, required:['label','amount','receipt_separate'],
       properties:{
         label:{type:'string', description:'Credit-card or app-card credit applied to this order, e.g. "DoorDash card credit" or "Grubhub grocery credit".'},
-        amount:{type:'number', description:'Credit amount as a POSITIVE number.'}
+        amount:{type:'number', description:'Credit amount as a POSITIVE number.'},
+        receipt_separate:{type:'boolean', description:'True only when the receipt shows this credit as its own separate line; false when it is included in a combined discount line.'}
       }
-    }, description:'Card-linked monthly credits or app credits that belong 100% to Collin. Keep these separate from store discounts and promo codes. Do not put ordinary gift cards or account balance here unless the screenshot clearly shows it is one of Collin\'s card-linked monthly credits.'},
+    }, description:'Card-linked monthly credits or app credits that belong 100% to Collin. Keep these separate from store discounts and promo codes. Set receipt_separate true only for an explicit separate credit line. Do not put ordinary gift cards or account balance here unless the screenshot clearly shows it is one of Collin\'s card-linked monthly credits.'},
     tax:{type:'number', description:'Sales tax charged on this order; 0 if no tax line.'},
     subtotal:{type:'number', description:'Item subtotal shown (final, after item sale prices); 0 if not visible.'},
     total:{type:'number', description:'Final charged total; 0 if not visible.'},
@@ -822,7 +835,7 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - EXCEPTION — promo codes: if item markdowns are attributed to a promo/coupon code (e.g. "$1.86 from FAST30 promo code") AND the order summary lists that code as one combined discount line (e.g. "FAST30 promo code −$10.04"), record each item at its ORIGINAL pre-promo price and record the promo once in promos. Items must sum to the pre-promo subtotal. Never subtract the same promo twice.
 - Delivery shown as $0.00 (e.g. free with Instacart+) = 0. Ignore the crossed-out original fee.
 - Promos: only genuine store discounts, coupons, and promo codes applied to this order (negative lines in the summary), recorded as positive amounts. Keep these separate from card-linked credits.
-- Card credits: if the summary shows a DoorDash, Grubhub, Instacart, or similar monthly card/app credit that belongs to Collin, put it in credits, not promos. Multiple credits must remain separate. These credits are always allocated 100% to Collin regardless of how store promos are assigned.
+- Card credits: if the summary shows a DoorDash, Grubhub, Instacart, or similar monthly card/app credit that belongs to Collin, put it in credits, not promos. Multiple credits must remain separate. Set receipt_separate true only when the credit appears as its own line in the receipt summary; if it is visibly included in a combined discount line, set receipt_separate false. These credits are always allocated 100% to Collin regardless of how store promos are assigned.
 - Ordinary gift-card and account-balance credits are a PAYMENT METHOD, not a discount or a card-linked monthly credit: do not record them in promos or credits. When the shown final total includes one of those ordinary payment credits, report total as the pre-credit amount the order actually cost: items + fees + tip + tax − genuine discounts.
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
 - date: only if a date is actually visible; else empty string.
@@ -895,7 +908,7 @@ function buildTrip(p){
       mode: 'C', splitS: 0, splitSH: 0, itemIds: []
     })),
     credits: (p.credits || []).map(o => ({
-      id: uid(), label: o.label || 'Card credit', amount: Math.abs(round2(o.amount))
+      id: uid(), label: o.label || 'Card credit', amount: Math.abs(round2(o.amount)), separate: o.receipt_separate !== false
     })),
     tax: round2(p.tax), subtotal: round2(p.subtotal), total: round2(p.total),
     notes: p.notes || ''
@@ -1480,19 +1493,21 @@ function renderTrip(id){
       ${presetOptions.map(([text, label, amount], i) => `<option value="${i}" ${selectedPreset && selectedPreset[0] === text ? 'selected' : ''}>${esc(text)}</option>`).join('')}
     </select>`;
     const customLabel = selectedPreset ? '' : `<input class="in grow" value="${esc(c.label)}" aria-label="Credit label" onchange="A.editCredit('${c.id}','label',this.value)">`;
+    const separateToggle = `<label class="checkitem small" style="width:100%;"><input type="checkbox" ${c.separate ? 'checked' : ''} onchange="A.editCredit('${c.id}','separate',this.checked)"><span>Shown as a separate credit line on the receipt</span></label>`;
     const head = (editCreditId === c.id)
       ? `<div class="row credit-edit-row">
            ${presetSelect}${customLabel}
            <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(c.amount).toFixed(2)}" onchange="A.editCredit('${c.id}','amount',this.value)">
            <button class="linklike danger" onclick="A.deleteCredit('${c.id}')">Delete</button>
            <button class="btn btn-ghost btn-sm" onclick="A.doneEditCredit()">Done</button>
+           ${separateToggle}
          </div>`
       : `<div class="row">
            <div class="itemname grow">${esc(c.label)}</div>
            <div class="money" style="color:var(--green);">−${moneyN(c.amount)}</div>
            <button class="linklike" onclick="A.startEditCredit('${c.id}')">Edit</button>
          </div>`;
-    return `<div class="card">${head}<div class="small muted" style="margin-top:7px;">100% allocated to Collin; separate from store discounts.</div></div>`;
+    return `<div class="card">${head}<div class="small muted" style="margin-top:7px;">100% allocated to Collin. ${c.separate ? 'This credit is subtracted in addition to store discounts.' : 'This credit is included in the store-discount amount, so the discount pool is reduced by this credit.'}</div></div>`;
   }).join('');
 
   // --- fees & tax ---
@@ -1912,6 +1927,7 @@ const A = {
     const t = tripById(currentTripId); const c = t && (t.credits || []).find(x => x.id === id); if(!c) return;
     if(field === 'label') c.label = val;
     if(field === 'amount') c.amount = Math.abs(round2(val));
+    if(field === 'separate') c.separate = !!val;
     persist();
   },
   creditPreset(id, value){
@@ -1935,7 +1951,7 @@ const A = {
   addCredit(){
     const t = tripById(currentTripId); if(!t) return;
     t.credits = t.credits || [];
-    t.credits.push({ id:uid(), label:'Custom credit', amount:0 });
+    t.credits.push({ id:uid(), label:'Custom credit', amount:0, separate:false });
     editCreditId = t.credits[t.credits.length - 1].id; persist(); rerenderTrip();
   },
 
