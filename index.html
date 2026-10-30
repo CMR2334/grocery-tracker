@@ -27,10 +27,10 @@
     --radius:14px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink); overflow-x:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
   html{-webkit-text-size-adjust:100%;}
-  #app{max-width:540px; margin:0 auto; padding:14px 16px 110px;
+  #app{width:100%; max-width:540px; margin:0 auto; padding:14px 16px 110px;
     padding-top:max(14px, env(safe-area-inset-top));
     padding-left:max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right));}
   h1{font-size:22px; margin:0; letter-spacing:-.02em; color:var(--title);}
@@ -68,6 +68,9 @@
   .muted{color:var(--muted);}
   .small{font-size:12.5px;}
   .row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .row-wrap{flex-wrap:wrap;}
+  .credit-edit-row{flex-wrap:wrap;}
+  .credit-edit-row .in.grow{min-width:145px;}
   .grow{flex:1; min-width:0;}
   .in{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:11px;
     font-size:16px; background:var(--bg); color:var(--ink); font-family:inherit;}
@@ -354,6 +357,7 @@ let newTripDragDepth = 0;
 let parsing = false;
 let editItemId = null;
 let editPromoId = null;
+let editCreditId = null;
 let currentTripId = null;
 let currentView = 'home';
 let syncPushTimer = null;
@@ -520,7 +524,7 @@ function closeLightbox(){
 function computeTotals(t){
   const cats = ['C','S','SH'];
   const zero = () => ({C:0,S:0,SH:0});
-  const items = zero(), taxBase = zero(), fees = zero(), tax = zero(), promos = zero();
+  const items = zero(), taxBase = zero(), fees = zero(), tax = zero(), promos = zero(), credits = zero();
   const warnings = [];
 
   const lineSum = t.items.reduce((a,i) => a + num(i.lineTotal), 0);
@@ -613,13 +617,23 @@ function computeTotals(t){
     }
   }
 
+  // App/card credits are a separate benefit from store discounts. They are
+  // always allocated to Collin, regardless of the store-discount allocation.
+  let creditTotal = 0;
+  for(const credit of (t.credits || [])){
+    const amt = Math.abs(num(credit.amount));
+    creditTotal += amt;
+    credits.C += amt;
+  }
+
   // round to cents; pin the rounded sum to the computed grand total
   const computedTotal = lineSum + feeTotal + taxTotal - promoTotal;
+  const netTotal = computedTotal - creditTotal;
   const out = {};
   for(const c of cats){
-    out[c] = Math.round((items[c] + fees[c] + tax[c] - promos[c]) * 100);
+    out[c] = Math.round((items[c] + fees[c] + tax[c] - promos[c] - credits[c]) * 100);
   }
-  const drift = Math.round(computedTotal * 100) - (out.C + out.S + out.SH);
+  const drift = Math.round(netTotal * 100) - (out.C + out.S + out.SH);
   if(drift !== 0){
     // absorb penny drift into the largest bucket (usually Collin)
     let big = 'C';
@@ -630,12 +644,14 @@ function computeTotals(t){
   const r = o => ({C:Math.round(o.C*100), S:Math.round(o.S*100), SH:Math.round(o.SH*100)});
   return {
     totals: out,
-    detail: { items:r(items), fees:r(fees), tax:r(tax), promos:r(promos) },
+    detail: { items:r(items), fees:r(fees), tax:r(tax), promos:r(promos), credits:r(credits) },
     lineSum: Math.round(lineSum*100),
     feeTotal: Math.round(feeTotal*100),
     taxTotal: Math.round(taxTotal*100),
     promoTotal: Math.round(promoTotal*100),
+    creditTotal: Math.round(creditTotal*100),
     computedTotal: Math.round(computedTotal*100),
+    netTotal: Math.round(netTotal*100),
     receiptTotal: Math.round(num(t.total)*100),
     warnings
   };
@@ -746,7 +762,7 @@ function rowStrings(t){
 // ---------- AI parsing ----------
 const PARSE_SCHEMA = {
   type:'object', additionalProperties:false,
-  required:['store','date','synopsis','items','fees','promos','tax','subtotal','total','notes'],
+  required:['store','date','synopsis','items','fees','promos','credits','tax','subtotal','total','notes'],
   properties:{
     store:{type:'string', description:'Store name, e.g. "Aldi", "Pick \'n Save", "Walmart". Best guess from branding. Use the specific store banner shown (e.g. "Metro Market"), never the parent company (e.g. "Kroger").'},
     synopsis:{type:'string', description:'Summary of what was bought, 29 characters max including spaces, starting with a capital letter, e.g. "Snacks + paper goods". NO store name, NO date.'},
@@ -781,7 +797,14 @@ const PARSE_SCHEMA = {
         label:{type:'string', description:'Short label, e.g. "$10 off any store".'},
         amount:{type:'number', description:'Discount amount as a POSITIVE number.'}
       }
-    }, description:'Discounts/credits applied to THIS order. Exclude next-order offers.'},
+    }, description:'Store discounts, coupons, and promo codes applied to THIS order. Keep card-linked credits in credits instead.'},
+    credits:{type:'array', items:{
+      type:'object', additionalProperties:false, required:['label','amount'],
+      properties:{
+        label:{type:'string', description:'Credit-card or app-card credit applied to this order, e.g. "DoorDash card credit" or "Grubhub grocery credit".'},
+        amount:{type:'number', description:'Credit amount as a POSITIVE number.'}
+      }
+    }, description:'Card-linked monthly credits or app credits that belong 100% to Collin. Keep these separate from store discounts and promo codes. Do not put ordinary gift cards or account balance here unless the screenshot clearly shows it is one of Collin\'s card-linked monthly credits.'},
     tax:{type:'number', description:'Sales tax charged on this order; 0 if no tax line.'},
     subtotal:{type:'number', description:'Item subtotal shown (final, after item sale prices); 0 if not visible.'},
     total:{type:'number', description:'Final charged total; 0 if not visible.'},
@@ -798,8 +821,9 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - line_total is the price charged for the whole line at the shown quantity. When a price is struck through next to a highlighted price because of a store sale, use the highlighted (sale) price. In Instacart carts, the price under the product name is already the line total for the quantity shown.
 - EXCEPTION — promo codes: if item markdowns are attributed to a promo/coupon code (e.g. "$1.86 from FAST30 promo code") AND the order summary lists that code as one combined discount line (e.g. "FAST30 promo code −$10.04"), record each item at its ORIGINAL pre-promo price and record the promo once in promos. Items must sum to the pre-promo subtotal. Never subtract the same promo twice.
 - Delivery shown as $0.00 (e.g. free with Instacart+) = 0. Ignore the crossed-out original fee.
-- Promos: only genuine discounts applied to this order (negative lines in the summary), recorded as positive amounts. IGNORE banners about credits or offers "on your next order".
-- Gift-card and account CREDITS (e.g. "DoorDash Credits", "Gift card", account balance applied) are a PAYMENT METHOD, not a discount: never record them in promos and never subtract them. When the shown final total is after credits (even $0.00), report total as the pre-credit amount the order actually cost: items + fees + tip + tax − genuine discounts.
+- Promos: only genuine store discounts, coupons, and promo codes applied to this order (negative lines in the summary), recorded as positive amounts. Keep these separate from card-linked credits.
+- Card credits: if the summary shows a DoorDash, Grubhub, Instacart, or similar monthly card/app credit that belongs to Collin, put it in credits, not promos. Multiple credits must remain separate. These credits are always allocated 100% to Collin regardless of how store promos are assigned.
+- Ordinary gift-card and account-balance credits are a PAYMENT METHOD, not a discount or a card-linked monthly credit: do not record them in promos or credits. When the shown final total includes one of those ordinary payment credits, report total as the pre-credit amount the order actually cost: items + fees + tip + tax − genuine discounts.
 - Wisconsin taxability guess per item: unprepared grocery food is exempt; candy, soft drinks/soda, prepared or hot food, dietary supplements, alcohol, pet food, and non-food items (paper, cleaning, health & beauty) are taxable.
 - date: only if a date is actually visible; else empty string.
 - synopsis: a short plain-language summary of the items bought, 29 characters MAX including spaces, starting with a capital letter (e.g. "Produce + snacks", "Diapers, wipes, formula"). Cover the gist of the whole order, most notable items first. Never include the store name or the date.
@@ -869,6 +893,9 @@ function buildTrip(p){
     promos: (p.promos || []).map(o => ({
       id: uid(), label: o.label || 'Discount', amount: Math.abs(round2(o.amount)),
       mode: 'C', splitS: 0, splitSH: 0, itemIds: []
+    })),
+    credits: (p.credits || []).map(o => ({
+      id: uid(), label: o.label || 'Card credit', amount: Math.abs(round2(o.amount))
     })),
     tax: round2(p.tax), subtotal: round2(p.subtotal), total: round2(p.total),
     notes: p.notes || ''
@@ -1417,7 +1444,7 @@ function renderTrip(id){
       </div>`;
     }
     const head = (editPromoId === p.id)
-      ? `<div class="row">
+      ? `<div class="row row-wrap">
            <input class="in grow" value="${esc(p.label)}" onchange="A.editPromo('${p.id}','label',this.value)">
            <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(p.amount).toFixed(2)}" onchange="A.editPromo('${p.id}','amount',this.value)">
            <button class="linklike danger" onclick="A.deletePromo('${p.id}')">Delete</button>
@@ -1436,6 +1463,36 @@ function renderTrip(id){
       </div>
       ${panel}
     </div>`;
+  }).join('');
+
+  const creditsHtml = (t.credits || []).map(c => {
+    const presetOptions = [
+      ['DoorDash monthly credit — $10', 'DoorDash monthly credit', 10],
+      ['DoorDash monthly credit — $20', 'DoorDash monthly credit', 20],
+      ['Grubhub restaurant credit — $10', 'Grubhub restaurant credit', 10],
+      ['Grubhub grocery credit — $10', 'Grubhub grocery credit', 10],
+      ['Instacart monthly credit — $10', 'Instacart monthly credit', 10],
+      ['Instacart monthly credit — $20', 'Instacart monthly credit', 20]
+    ];
+    const selectedPreset = presetOptions.find(([, label, amount]) => c.label === label && num(c.amount) === amount);
+    const presetSelect = `<select class="in grow" onchange="A.creditPreset('${c.id}',this.value)">
+      ${!selectedPreset ? '<option value="custom" selected>Custom / edit manually</option>' : '<option value="" disabled>Choose credit type…</option>'}
+      ${presetOptions.map(([text, label, amount], i) => `<option value="${i}" ${selectedPreset && selectedPreset[0] === text ? 'selected' : ''}>${esc(text)}</option>`).join('')}
+    </select>`;
+    const customLabel = selectedPreset ? '' : `<input class="in grow" value="${esc(c.label)}" aria-label="Credit label" onchange="A.editCredit('${c.id}','label',this.value)">`;
+    const head = (editCreditId === c.id)
+      ? `<div class="row credit-edit-row">
+           ${presetSelect}${customLabel}
+           <input class="in in-money" type="number" step="0.01" inputmode="decimal" value="${num(c.amount).toFixed(2)}" onchange="A.editCredit('${c.id}','amount',this.value)">
+           <button class="linklike danger" onclick="A.deleteCredit('${c.id}')">Delete</button>
+           <button class="btn btn-ghost btn-sm" onclick="A.doneEditCredit()">Done</button>
+         </div>`
+      : `<div class="row">
+           <div class="itemname grow">${esc(c.label)}</div>
+           <div class="money" style="color:var(--green);">−${moneyN(c.amount)}</div>
+           <button class="linklike" onclick="A.startEditCredit('${c.id}')">Edit</button>
+         </div>`;
+    return `<div class="card">${head}<div class="small muted" style="margin-top:7px;">100% allocated to Collin; separate from store discounts.</div></div>`;
   }).join('');
 
   // --- fees & tax ---
@@ -1478,7 +1535,11 @@ function renderTrip(id){
     ${itemsHtml || '<div class="card empty">No items yet. Add one below.</div>'}
     <button class="btn btn-ghost" onclick="A.addItem()">Add Item</button>
 
-    <h2>Discounts</h2>
+    <h2>Card credits</h2>
+    ${creditsHtml || '<div class="card small muted">No card credits on this order.</div>'}
+    <button class="btn btn-ghost" onclick="A.addCredit()">Add Card Credit</button>
+
+    <h2>Store discounts</h2>
     ${promosHtml || '<div class="card small muted">No discounts on this order.</div>'}
     <button class="btn btn-ghost" onclick="A.addPromo()">Add Discount</button>
 
@@ -1524,6 +1585,7 @@ function renderTrip(id){
           <tr><td>Fees &amp; tip</td><td>${money(r.detail.fees.C)}</td><td>${money(r.detail.fees.SH)}</td><td>${money(r.detail.fees.S)}</td></tr>
           <tr><td>Tax</td><td>${money(r.detail.tax.C)}</td><td>${money(r.detail.tax.SH)}</td><td>${money(r.detail.tax.S)}</td></tr>
           <tr><td>Discounts</td><td>−${money(r.detail.promos.C)}</td><td>−${money(r.detail.promos.SH)}</td><td>−${money(r.detail.promos.S)}</td></tr>
+          <tr><td>Card credits</td><td>−${money(r.detail.credits.C)}</td><td>−${money(r.detail.credits.SH)}</td><td>−${money(r.detail.credits.S)}</td></tr>
           <tr><td>Total</td><td>${signedMoney(t, r.totals.C)}</td><td>${signedMoney(t, r.totals.SH)}</td><td>${signedMoney(t, r.totals.S)}</td></tr>
         </table></div>
       </details>
@@ -1841,6 +1903,40 @@ const A = {
     const t = tripById(currentTripId); if(!t) return;
     const p = { id:uid(), label:'Discount', amount:0, mode:'C', splitS:0, splitSH:0, itemIds:[] };
     t.promos.push(p); editPromoId = p.id; persist(); rerenderTrip();
+  },
+
+  // card credits — always Collin's; never share or redirect these
+  startEditCredit(id){ this.commitOpenItemPrice(); editCreditId = id; editPromoId = null; editItemId = null; syncRenderPending = false; rerenderTrip(); },
+  doneEditCredit(){ editCreditId = null; syncRenderPending = false; rerenderTrip(); },
+  editCredit(id, field, val){
+    const t = tripById(currentTripId); const c = t && (t.credits || []).find(x => x.id === id); if(!c) return;
+    if(field === 'label') c.label = val;
+    if(field === 'amount') c.amount = Math.abs(round2(val));
+    persist();
+  },
+  creditPreset(id, value){
+    const t = tripById(currentTripId); const c = t && (t.credits || []).find(x => x.id === id); if(!c) return;
+    const presets = [
+      ['DoorDash monthly credit', 10],
+      ['DoorDash monthly credit', 20],
+      ['Grubhub restaurant credit', 10],
+      ['Grubhub grocery credit', 10],
+      ['Instacart monthly credit', 10],
+      ['Instacart monthly credit', 20]
+    ];
+    const preset = presets[Number(value)];
+    if(preset){ c.label = preset[0]; c.amount = preset[1]; persist(); rerenderTrip(); }
+  },
+  deleteCredit(id){
+    const t = tripById(currentTripId); if(!t) return;
+    t.credits = (t.credits || []).filter(c => c.id !== id);
+    editCreditId = null; persist(); rerenderTrip();
+  },
+  addCredit(){
+    const t = tripById(currentTripId); if(!t) return;
+    t.credits = t.credits || [];
+    t.credits.push({ id:uid(), label:'Custom credit', amount:0 });
+    editCreditId = t.credits[t.credits.length - 1].id; persist(); rerenderTrip();
   },
 
   // fees
