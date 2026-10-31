@@ -209,6 +209,26 @@
     padding:10px 18px; border-radius:999px; font-size:14px; font-weight:600; opacity:0; pointer-events:none;
     transition:opacity .18s; z-index:60; white-space:nowrap;}
   #toast.show{opacity:1;}
+  .cost-stats{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0 12px;}
+  .cost-label{font-size:12.5px; color:var(--muted); font-weight:600;}
+  .cost-value{font-size:24px; font-weight:600; letter-spacing:-.01em; margin-top:2px;}
+  .cost-chart{display:flex; gap:6px; padding-top:8px;}
+  .cost-axis{position:relative; flex:none; width:48px; height:120px; font-size:10.5px; color:var(--muted);
+    font-variant-numeric:tabular-nums; text-align:right;}
+  .cost-axis span{position:absolute; right:0; transform:translateY(-50%);}
+  .cost-plot{position:relative; flex:1; min-width:0; display:grid; grid-template-columns:repeat(var(--cols),minmax(0,1fr));}
+  .cost-grid{position:absolute; top:0; left:0; right:0; height:120px; pointer-events:none;}
+  .cost-grid i{position:absolute; left:0; right:0; height:1px; background:var(--line);}
+  .cost-col{position:relative; display:block; min-width:0; padding:0; border:none; background:transparent;
+    color:var(--muted); font-family:inherit; cursor:pointer;}
+  .cost-col:focus-visible{outline:2px solid var(--c); outline-offset:0; border-radius:6px;}
+  .cost-slot{display:flex; align-items:flex-end; justify-content:center; height:120px; padding:0 1px;}
+  .cost-bar{width:100%; max-width:24px; min-height:3px; border-radius:4px 4px 0 0; background:var(--c-btn);}
+  .cost-col:hover .cost-bar{background:var(--c);}
+  .cost-col.on .cost-bar{background:var(--c);}
+  .cost-col.on .cost-tick{color:var(--ink); font-weight:600;}
+  .cost-tick{display:block; padding:7px 0 4px; font-size:10.5px; line-height:14px; text-align:center; white-space:nowrap;}
+  .cost-readout{min-height:20px; margin-top:6px; font-size:13.5px; font-variant-numeric:tabular-nums;}
   .empty{padding:34px 10px; text-align:center; color:var(--muted); font-size:14.5px; line-height:1.6;}
   .desc-wrap{margin-bottom:12px;}
   .counter{font-size:12px; color:var(--muted); text-align:right; margin-top:4px;}
@@ -342,6 +362,7 @@ const loadedTrips = load('gt_trips', []);
 let trips    = Array.isArray(loadedTrips) ? loadedTrips : [];
 const loadedTombstones = load('gt_tombstones', []);
 let tombstones = Array.isArray(loadedTombstones) ? loadedTombstones : [];
+let usageLog = mergeUsage(load('gt_usage', []));
 let syncRev = Number(load('gt_sync_rev', 0));
 if(!Number.isFinite(syncRev) || syncRev < 0) syncRev = 0;
 let syncState = load('gt_sync_state', { lastSyncAt:0, lastError:'' });
@@ -363,6 +384,10 @@ let editPromoId = null;
 let editCreditId = null;
 let currentTripId = null;
 let currentView = 'home';
+let costRange = 'week';
+let costBucketsShown = [];
+let costSelected = null;
+let costHovered = null;
 let syncPushTimer = null;
 let syncPullInFlight = null;
 let syncPushInFlight = null;
@@ -421,12 +446,23 @@ function dedupeTombstones(list){
   return [...byId.values()].sort((a,b) => a.id.localeCompare(b.id));
 }
 
-function syncStateSignature(tripList, tombstoneList){
+function mergeUsage(...lists){
+  const byId = new Map();
+  for(const list of lists){
+    for(const e of Array.isArray(list) ? list : []){
+      if(e && e.id && Number.isFinite(e.at) && Number.isFinite(e.micros)) byId.set(String(e.id), e);
+    }
+  }
+  return [...byId.values()].sort((a,b) => a.at - b.at || String(a.id).localeCompare(String(b.id)));
+}
+
+function syncStateSignature(tripList, tombstoneList, usageList){
   const state = {
     trips: (Array.isArray(tripList) ? tripList : [])
       .map(t => ensureTripUpdatedAt(t))
       .sort((a,b) => String(a.id).localeCompare(String(b.id))),
-    tombstones: dedupeTombstones(tombstoneList)
+    tombstones: dedupeTombstones(tombstoneList),
+    usage: mergeUsage(usageList)
   };
   return JSON.stringify(canonicalizeForSync(state));
 }
@@ -463,6 +499,7 @@ function persist(options = {}){
     localStorage.setItem('gt_settings', JSON.stringify(settings));
     localStorage.setItem('gt_trips', JSON.stringify(trips));
     localStorage.setItem('gt_tombstones', JSON.stringify(tombstones));
+    localStorage.setItem('gt_usage', JSON.stringify(usageLog));
     lastPersistedTripBodies.clear();
     for(const t of trips) lastPersistedTripBodies.set(t.id, tripBodyForSync(t));
   }catch(e){ toast('Could not save'); }
@@ -847,6 +884,29 @@ const PARSE_PROMPT = `These screenshots are from one grocery order (Instacart, a
 - VERIFY BEFORE ANSWERING (works for any store): (a) your item line_totals should sum to the shown subtotal; (b) subtotal − promos + fees + tip + tax should equal the shown total. If a check fails, re-examine the screenshots for missed items, misread prices, uncounted substitutions, or double-counted discounts, and correct your extraction. Only if it still won't balance, state the exact leftover amount and your best guess why in notes (e.g. "items are $6.56 short of subtotal — a line may be cut off above the visible area").
 - If anything is unreadable or ambiguous, say so in notes.`;
 
+// $ per million tokens, so tokens × rate is microdollars. API cost is tracked
+// in those rather than cents because one Haiku parse is a fraction of a cent.
+const PRICES = {
+  'claude-haiku-5-5': { input:0.1, output:0.5, over100k:{ input:0.5, output:2.5 } },
+  'claude-opus-5-5': { input:4, output:20 }
+};
+
+function usageCostMicros(model, usage){
+  const price = PRICES[model];
+  if(!price || !usage) return null;
+  const input = num(usage.input_tokens), output = num(usage.output_tokens);
+  const rate = price.over100k && input > 100000 ? price.over100k : price;
+  return Math.round(input * rate.input + output * rate.output);
+}
+
+function recordUsage(model, usage){
+  const micros = usageCostMicros(model, usage);
+  if(micros === null) return;
+  usageLog = mergeUsage(usageLog, [{ id:uid(), at:Date.now(), model,
+    input:num(usage.input_tokens), output:num(usage.output_tokens), micros }]);
+  persist();
+}
+
 async function parseScreenshots(dataUrls, model = settings.model){
   const content = dataUrls.map(u => {
     const m = u.match(/^data:(image\/\w+);base64,(.*)$/s);
@@ -875,6 +935,7 @@ async function parseScreenshots(dataUrls, model = settings.model){
   try{ json = await resp.json(); }
   catch{ throw new Error('The response was cut off mid-download — usually a brief connection hiccup. Just try again.'); }
   if(json.type === 'error') throw new Error(json.error?.message || 'API error');
+  recordUsage(model, json.usage); // before the checks below: those failures still bill tokens
   if(json.stop_reason === 'refusal') throw new Error('The model declined this request. Try again.');
   if(json.stop_reason === 'max_tokens') throw new Error('The answer ran out of room before finishing. Try again, or split the order into fewer screenshots per parse.');
   const textBlock = (json.content || []).find(b => b.type === 'text');
@@ -1165,15 +1226,17 @@ async function pullMerge(){
       const mergedTombstones = dedupeTombstones([...localTombstones, ...remoteTombstones]);
       const deleted = new Set(mergedTombstones.map(t => t.id));
       const mergedTrips = order.map(id => candidates.get(id)).filter(t => t && !deleted.has(String(t.id)));
-      const currentSignature = syncStateSignature(localTrips, localTombstones);
-      const mergedSignature = syncStateSignature(mergedTrips, mergedTombstones);
-      const remoteSignature = syncStateSignature(remoteEffectiveTrips, remoteTombstones);
+      const mergedUsage = mergeUsage(usageLog, remote.usage);
+      const currentSignature = syncStateSignature(localTrips, localTombstones, usageLog);
+      const mergedSignature = syncStateSignature(mergedTrips, mergedTombstones, mergedUsage);
+      const remoteSignature = syncStateSignature(remoteEffectiveTrips, remoteTombstones, remote.usage);
       const dataChanged = currentSignature !== mergedSignature;
       const needsPush = mergedSignature !== remoteSignature;
 
       const beforeIds = new Set(localTrips.map(t => String(t.id)));
       trips = mergedTrips;
       tombstones = mergedTombstones;
+      usageLog = mergedUsage;
       syncRev = Number(remote.rev);
       saveSyncRev();
       if(dataChanged){
@@ -1216,6 +1279,7 @@ async function push(){
       const payload = {
         trips: trips.map(t => ensureTripUpdatedAt(t)),
         tombstones: dedupeTombstones(tombstones),
+        usage: usageLog,
         rev: nextRev
       };
       const response = await fetch(`${syncBase()}/trips`, {
@@ -1316,9 +1380,112 @@ function renderSettings(){
       <div id="syncStatus" class="small muted" style="margin-top:10px;">${syncStatusText()}</div>
     </div>
     <div class="card small muted" style="line-height:1.6;">
-      Your key is stored only on this device and sent only to <b>api.anthropic.com</b>. Screenshots go directly from your phone to the Anthropic API. If Sync URL and token are filled, trips and JPEG screenshots also sync to that worker. All splitting math runs on-device.
+      Your key is stored only on this device and sent only to <b>api.anthropic.com</b>. Screenshots go directly from your phone to the Anthropic API. If Sync URL and token are filled, trips, API cost history, and JPEG screenshots also sync to that worker. All splitting math runs on-device.
     </div>
-    <button class="btn btn-primary" onclick="A.saveSettings()">Save</button>`;
+    <button class="btn btn-primary" onclick="A.saveSettings()">Save</button>
+    <h2>API cost</h2>
+    <div class="card" id="costCard"></div>`;
+  renderCost();
+}
+
+const COST_RANGES = { week:'Last 7 days', month:'Last 4 weeks', year:'Last 12 months' };
+
+function fmtCost(micros){
+  if(!micros) return '$0.00';
+  if(micros < 100) return '<$0.0001';
+  // Round the integer first: toFixed alone turns 0.00105 into 0.0010.
+  const tenThousandths = Math.round(micros / 100);
+  return '$' + (tenThousandths < 10000 ? (tenThousandths / 10000).toFixed(4) : (Math.round(micros / 10000) / 100).toFixed(2));
+}
+
+const runsLabel = n => `${n} run${n === 1 ? '' : 's'}`;
+const shortDate = d => d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+
+// Buckets are built from local calendar dates so daylight-saving days stay whole.
+function costBuckets(range, now = new Date()){
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  const slots = [];
+  if(range === 'year'){
+    for(let i = 11; i >= 0; i--){
+      const start = new Date(y, m - i, 1);
+      slots.push({ start, end:new Date(y, m - i + 1, 1),
+        tick:start.toLocaleDateString(undefined, { month:'narrow' }),
+        label:start.toLocaleDateString(undefined, { month:'long', year:'numeric' }) });
+    }
+  }else if(range === 'month'){
+    for(let i = 3; i >= 0; i--){
+      const start = new Date(y, m, d - 6 - 7 * i), last = new Date(y, m, d - 7 * i);
+      slots.push({ start, end:new Date(y, m, d + 1 - 7 * i), tick:shortDate(start),
+        label:`${shortDate(start)}–${shortDate(last)}` });
+    }
+  }else{
+    for(let i = 6; i >= 0; i--){
+      const start = new Date(y, m, d - i);
+      slots.push({ start, end:new Date(y, m, d + 1 - i),
+        tick:start.toLocaleDateString(undefined, { weekday:'short' }),
+        label:start.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) });
+    }
+  }
+  return slots.map(s => {
+    const inside = usageLog.filter(e => e.at >= s.start.getTime() && e.at < s.end.getTime());
+    return { tick:s.tick, label:s.label, runs:inside.length, micros:inside.reduce((sum, e) => sum + e.micros, 0) };
+  });
+}
+
+// Round the axis up to 1, 2 or 4 × a power of ten so its midpoint stays exact at 4 decimals.
+function costAxisMax(micros){
+  const floor = Math.max(micros, 200);
+  const power = 10 ** Math.floor(Math.log10(floor));
+  return [1, 2, 4, 10].map(n => n * power).find(n => n >= floor);
+}
+
+function renderCost(){
+  const el = $('costCard');
+  if(!el) return;
+  costBucketsShown = costBuckets(costRange);
+  const runs = costBucketsShown.reduce((sum, b) => sum + b.runs, 0);
+  const micros = costBucketsShown.reduce((sum, b) => sum + b.micros, 0);
+  const top = costAxisMax(Math.max(...costBucketsShown.map(b => b.micros)));
+  const ranges = Object.keys(COST_RANGES).map(r =>
+    `<button id="costRange-${r}" class="${r === costRange ? 'on-C' : ''}" aria-pressed="${r === costRange}" onclick="A.setCostRange('${r}')">${r[0].toUpperCase() + r.slice(1)}</button>`).join('');
+  const cols = costBucketsShown.map((b, i) => `<button class="cost-col" aria-pressed="false" aria-label="${esc(`${b.label}: ${fmtCost(b.micros)}, ${runsLabel(b.runs)}`)}"
+      onclick="A.selectCostBar(${i})" onpointerenter="A.hoverCostBar(${i}, event)" onpointerleave="A.hoverCostBar(null, event)">
+      <span class="cost-slot">${b.micros ? `<span class="cost-bar" style="height:${(b.micros / top * 100).toFixed(1)}%;"></span>` : ''}</span>
+      <span class="cost-tick">${esc(b.tick)}</span>
+    </button>`).join('');
+  el.innerHTML = `
+    <div class="seg" role="group" aria-label="Cost time frame">${ranges}</div>
+    <div class="cost-stats">
+      <div><div class="cost-label">${COST_RANGES[costRange]} · ${runsLabel(runs)}</div><div class="cost-value">${fmtCost(micros)}</div></div>
+      <div><div class="cost-label">Average per run</div><div class="cost-value">${runs ? fmtCost(Math.round(micros / runs)) : '—'}</div></div>
+    </div>
+    <div class="cost-chart">
+      <div class="cost-axis" aria-hidden="true">
+        <span style="top:0;">${fmtCost(top)}</span><span style="top:50%;">${fmtCost(top / 2)}</span><span style="top:100%;">$0</span>
+      </div>
+      <div class="cost-plot" style="--cols:${costBucketsShown.length};">
+        <div class="cost-grid" aria-hidden="true"><i style="top:0;"></i><i style="top:50%;"></i><i style="bottom:0;"></i></div>
+        ${cols}
+      </div>
+    </div>
+    <div class="cost-readout" id="costReadout" aria-live="polite"></div>
+    <div class="hint" style="margin:8px 0 0;">Estimated from token usage at API list prices. Parses from before this feature aren't included.</div>`;
+  paintCostSelection();
+}
+
+function paintCostSelection(){
+  const shown = costHovered ?? costSelected;
+  document.querySelectorAll('#costCard .cost-col').forEach((col, i) => {
+    col.classList.toggle('on', i === shown);
+    col.setAttribute('aria-pressed', String(i === costSelected));
+  });
+  const out = $('costReadout');
+  if(!out) return;
+  const b = costBucketsShown[shown];
+  const unit = { week:'day', month:'week', year:'month' }[costRange];
+  if(!b) out.textContent = usageLog.length ? `Tap a bar to see that ${unit}.` : 'Tracking starts with your next parse.';
+  else if(!b.runs) out.textContent = `${b.label} · No runs`;
+  else out.textContent = `${b.label} · ${fmtCost(b.micros)} · ${runsLabel(b.runs)} · ${fmtCost(Math.round(b.micros / b.runs))}/run`;
 }
 
 function renderNew(){
@@ -1644,13 +1811,26 @@ function flushPendingSyncRender(){
 // ---------- actions ----------
 const A = {
   goHome(){ this.commitOpenItemPrice(); editItemId = editPromoId = null; syncRenderPending = false; renderHome(); },
-  goSettings(){ renderSettings(); },
+  goSettings(){ costRange = 'week'; costSelected = costHovered = null; renderSettings(); },
   goNew(){ pendingImages = []; renderNew(); },
   openTrip(id){ this.commitOpenItemPrice(); editItemId = editPromoId = null; syncRenderPending = false; renderTrip(id); },
 
   // settings
   toggleKey(){ const i = $('apiKey'); i.type = i.type === 'password' ? 'text' : 'password'; },
   toggleSyncToken(){ const i = $('syncToken'); i.type = i.type === 'password' ? 'text' : 'password'; },
+  // These repaint only the cost card so unsaved key and sync edits stay in their fields.
+  setCostRange(range){
+    costRange = range;
+    costSelected = costHovered = null;
+    renderCost();
+    $(`costRange-${range}`)?.focus();
+  },
+  selectCostBar(i){ costSelected = costSelected === i ? null : i; paintCostSelection(); },
+  hoverCostBar(i, e){
+    if(e.pointerType !== 'mouse') return;
+    costHovered = i;
+    paintCostSelection();
+  },
   saveSettings(){
     const priorSyncTarget = `${syncBase()}\n${String(settings.syncToken || '').trim()}`;
     settings.apiKey = $('apiKey').value.trim();
@@ -1987,7 +2167,8 @@ window.GT = {
   get trips(){ return trips; },
   get tombstones(){ return tombstones; },
   get settings(){ return settings; },
-  computeTotals, rowStrings, buildTrip, storeMarkFor, pullMerge, push, isSyncOn,
+  get usageLog(){ return usageLog; },
+  computeTotals, rowStrings, buildTrip, storeMarkFor, pullMerge, push, isSyncOn, costBuckets, costAxisMax, fmtCost, usageCostMicros,
   addTrip(parsed){ const t = buildTrip(parsed); trips.unshift(t); persist(); renderTrip(t.id); return t.id; }
 };
 

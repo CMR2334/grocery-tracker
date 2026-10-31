@@ -36,6 +36,8 @@ Single-file, mobile-first web app (`index.html`, no build step, no dependencies)
 - 2026-08-01 late pass: app icon (icon.svg + apple-touch-icon.png, receipt/$/split-dots mark) wired to head + home title; title font is REAL embedded Fraunces (19KB OFL subset, data URI — no runtime font fetch); fee/tax inputs centered with $ prefixes and hidden spinners; sticky-bar Copy button removed (per-section copies remain); item names wrap whole-parenthetical to line 2 clear of the price; palette shifted from brown-linen to cleaner beige (contrast re-verified AA+).
 - Native tab-separated paste now WORKS on mobile Sheets (Collin confirmed on-device) — the =SPLIT idea is dropped entirely.
 
+- API cost chart (Settings): each parse that returns `usage` is logged to `gt_usage` in integer microdollars, priced at the time of the run from `PRICES` in `index.html` (update it when models or list prices change). The log syncs as a `usage` array in `trips.json`, merged by entry id; the Worker passes it through unchanged. Week = 7 days, Month = 4 rolling 7-day buckets (28 days), Year = 12 calendar months. History starts when this shipped; earlier parses were never recorded.
+
 ## Next steps
 Candidate next steps raised by Collin on 2026-08-01; none is decided yet:
 
